@@ -1,2 +1,2 @@
-# against-all
+# AGAINST-ALL
 Práctica de SD.
