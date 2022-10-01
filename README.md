@@ -21,6 +21,6 @@ Responderá con un mensaje empezando por el carácter ACK y en el cuerpo del men
 `
 {
     "Alicante": 26,
-    "Sydeney": 32
+    "Sydney": 32
 }
 `
