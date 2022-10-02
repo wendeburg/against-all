@@ -5,12 +5,12 @@ Práctica de SD.
 Para la comunicación entre microservicios se utilizarán los siguientes caracteres:
 | **Carácter** | **Código ASCII** | **Descripción**                                                         |
 |--------------|:----------------:|:------------------------------------------------------------------------|
-| STX          |         2        | Indica que a partir de este carácter comienza el contenido del mensaje. |
-| ETX          |         3        | Indica que se ha acabado el contenido del mensaje.                      |
-| EOT          |         4        | Indica que se ha cerrado la conexión.                                   |
-| ENQ          |         5        | Petición para iniciar conexión.                                         |
-| ACK          |         6        | Reconocimiento de petición / petición aceptada.                         |
-| NAK          |        21        | Rechazo de petición por ser erronea.                                    |
+| STX          |         0x2      | Indica que a partir de este carácter comienza el contenido del mensaje. |
+| ETX          |         0x3      | Indica que se ha acabado el contenido del mensaje.                      |
+| EOT          |         0x4      | Indica que se ha cerrado la conexión.                                   |
+| ENQ          |         0x5      | Petición para iniciar conexión.                                         |
+| ACK          |         0x6      | Reconocimiento de petición / petición aceptada.                         |
+| NAK          |        0x25      | Rechazo de petición por ser erronea.                                    |
 
 En el cuerpo de las peticiones y respuestas, entre los carácteres STX Y ETX se enviarán objetos JSON con la información del mensaje. Y al final de los cada petición o respuesta se enviará un LRC que un número que valida que el mensaje se ha enviado correctamente.
 
