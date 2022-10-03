@@ -2,9 +2,7 @@ package AA_Weather;
 
 import java.io.*;
 import java.net.*;
-import java.util.ArrayList;
 import java.util.Random;
-import java.util.Set;
 
 import org.json.simple.*;
 import Utils.MessageParser;
