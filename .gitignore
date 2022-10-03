@@ -126,7 +126,6 @@ fabric.properties
 
 # Package Files #
 *.jar
-!./AA_Weather/lib/*
 *.war
 *.nar
 *.ear
@@ -398,3 +397,6 @@ cython_debug/
 
 # Ignore code-workspaces
 *.code-workspace
+
+# DO NOT IGNORE
+!AA_Weather/dependencies/*
