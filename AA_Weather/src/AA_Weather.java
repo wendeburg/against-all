@@ -1,5 +1,3 @@
-package AA_Weather;
-
 import java.io.*;
 import java.net.*;
 
@@ -52,7 +50,7 @@ class AA_Weather {
     
                 System.out.println("Sirviendo a cliente con ip: " + clientIPAddress);
     
-                Thread hiloServidor = new AA_Weather_Thread(socketCliente, bd);
+                Thread hiloServidor = new AA_WeatherThread(socketCliente, bd);
                 hiloServidor.start();
             }
         } catch (IOException e) {

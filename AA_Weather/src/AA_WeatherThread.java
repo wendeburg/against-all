@@ -1,5 +1,3 @@
-package AA_Weather;
-
 import java.io.*;
 import java.net.*;
 import java.util.Random;
@@ -8,12 +6,12 @@ import org.json.simple.*;
 import Utils.MessageParser;
 import Utils.MessageParserException;
 
-public class AA_Weather_Thread extends Thread {
+public class AA_WeatherThread extends Thread {
     private final Socket socketCliente;
     private final String dirIPCliente;
     private final JSONObject bd;
 
-    protected AA_Weather_Thread(Socket socketCliente, JSONObject bd) {
+    protected AA_WeatherThread(Socket socketCliente, JSONObject bd) {
         this.socketCliente = socketCliente;
         this.bd = bd;
         
