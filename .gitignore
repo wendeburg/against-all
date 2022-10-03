@@ -126,7 +126,7 @@ fabric.properties
 
 # Package Files #
 *.jar
-!json-simple-1.1.1.jar
+!./AA_Weather/lib/*
 *.war
 *.nar
 *.ear
