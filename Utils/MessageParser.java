@@ -34,14 +34,15 @@ public class MessageParser {
                 String[] strings = str.substring(1, str.length()).split(Character.toString(MessageParser.ETXChar));
             
                 if (strings.length == 2) {
-                    if (checkLRC(strings[1], ACKChar)) {
-                        JSONParser parser = new JSONParser();
-
-                        try {
+                    try {
+                        if (checkLRC(strings[0], Integer.parseInt(strings[1]))) {
+                            JSONParser parser = new JSONParser();
+    
                             return (JSONObject)parser.parse(strings[0]);
-                        } catch (ParseException e) {
-                            throw new MessageParserException();
                         }
+                    }
+                    catch (Exception e) {
+                        throw new MessageParserException();
                     }
                 }
             }
