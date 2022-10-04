@@ -21,6 +21,7 @@ public class MessageParserTest {
     }
 
     @Test
+    // Comprobar que lance error al pasarle una string vacía.
     public void parseMessageTest1() {
         Exception e = assertThrows(MessageParserException.class, () -> {
             parser.parseMessage("");
@@ -28,6 +29,7 @@ public class MessageParserTest {
     }
 
     @Test
+    // Comprobar que de error al pasarle como primer carácter uno diferente a STXChar.
     public void parseMessageTest2() {
         Exception e = assertThrows(MessageParserException.class, () -> {
             parser.parseMessage("" + Character.toString(MessageParser.ETXChar));
@@ -35,6 +37,7 @@ public class MessageParserTest {
     }
 
     @Test
+    // Comprobar que de error al no haber carácter ETXChar.
     public void parseMessageTest3() {
         StringBuilder sb = new StringBuilder();
         sb.append(MessageParser.STXChar);
@@ -46,6 +49,7 @@ public class MessageParserTest {
     }
 
     @Test
+    // Comprobar que no de error al no poder convertir el LRC a string.
     public void parseMessageTest4() {
         StringBuilder sb = new StringBuilder();
         sb.append(MessageParser.STXChar);
@@ -59,6 +63,7 @@ public class MessageParserTest {
     }
 
     @Test
+    // Comprobar que da error cuando el LRC no coincida con la string.
     public void parseMessageTest5() {
         StringBuilder sb = new StringBuilder();
         sb.append(MessageParser.STXChar);
@@ -72,6 +77,7 @@ public class MessageParserTest {
     }
 
     @Test
+    // Comprobar que de error al no poder convertir "blabla" a json.
     public void parseMessageTest6() {
         StringBuilder sb = new StringBuilder();
         sb.append(MessageParser.STXChar);
@@ -85,6 +91,7 @@ public class MessageParserTest {
     }
 
     @Test
+    // Comprobar que convierte un mensaje correcto a json de forma correcto.
     public void parseMessageTest7() throws MessageParserException {
         StringBuilder sb = new StringBuilder();
         sb.append(MessageParser.STXChar);
@@ -95,6 +102,6 @@ public class MessageParserTest {
         JSONObject obj = new JSONObject();
         obj.put("ciudades", 5);
 
-        assertEquals(obj, parser.parseMessage(sb.toString()));
+        assertEquals(obj.toString(), parser.parseMessage(sb.toString()).toString());
     }
 }
