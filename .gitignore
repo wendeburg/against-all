@@ -400,3 +400,4 @@ cython_debug/
 
 # DO NOT IGNORE
 !AA_Weather/dependencies/*
+!AA_Weather/test-dependencies/*
