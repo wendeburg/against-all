@@ -92,9 +92,12 @@ def start():
 
 
 print("Registry starting...")
+"""
 mongo_client = pymongo.MongoClient("mongodb://mongodb:27017/")
 db = mongo_client["customersdb"]
 customers = db["customers"]
+
+mongo_client.server_info()
 
 customers_list = [
   { "name": "Amy", "address": "Apple st 652"},
@@ -116,7 +119,7 @@ print(x.inserted_ids)
 
 for x in customers.find():
     print(x)
-
+"""
 
 if (len(sys.argv) == 2):
     PORT = int(sys.argv[1])
