@@ -119,6 +119,8 @@ public class AA_WeatherThread extends Thread {
                 }
                 else if (mensaje.equals(Character.toString(MessageParser.EOTChar))) {
                     cont = false;
+                    socketCliente.close();
+                    System.out.println("Cerrada conexión con cliente con ip: " + dirIPCliente);
                 }
                 else {
                     MessageParser parser = new MessageParser();
@@ -132,6 +134,7 @@ public class AA_WeatherThread extends Thread {
                             escribeSocket(Character.toString(MessageParser.NAKChar));
                         } catch (IOException e1) {
                             System.out.println("Error al enviar NAK al cliente con ip: " + dirIPCliente);
+                            cont = false;
                         }
                     }
                 }
@@ -140,14 +143,18 @@ public class AA_WeatherThread extends Thread {
                     escribeSocket(Character.toString(MessageParser.NAKChar));
                 } catch (IOException e1) {
                     System.out.println("Error al enviar NAK al cliente con ip: " + dirIPCliente);
+                    cont = false;
                 }
             }
             finally {
-                try {
-                    socketCliente.close();
-                    System.out.println("Cerrada conexión con cliente con ip: " + dirIPCliente);
-                } catch (IOException e) {
-                    System.out.println("No se pudo cerrar el socket con el cliente con ip: " + dirIPCliente);
+                if (!cont) {
+                    try {
+                        socketCliente.close();
+                        System.out.println("Cerrada conexión con cliente con ip: " + dirIPCliente);
+                    } catch (IOException e) {
+                        System.out.println("No se pudo cerrar el socket con el cliente con ip: " + dirIPCliente);
+                        cont = false;
+                    }
                 }
             }
         }
