@@ -91,7 +91,7 @@ public class MessageParserTest {
     }
 
     @Test
-    // Comprobar que convierte un mensaje correcto a json de forma correcto.
+    // Comprobar que convierte un mensaje a json de forma correcta.
     public void parseMessageTest7() throws MessageParserException {
         StringBuilder sb = new StringBuilder();
         sb.append(MessageParser.STXChar);

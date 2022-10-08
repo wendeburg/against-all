@@ -8,19 +8,24 @@ import org.json.simple.parser.ParseException;
 class AA_Weather {
     private AA_Weather() {}
 
+    private Reader getDB() {
+        InputStream is = this.getClass().getResourceAsStream("/ciudades_temperaturas.json");
+        return new InputStreamReader(is);
+    }
+
     public static void main(String[] args) {
         if (args.length < 1) {
-            System.out.println("Error missing argument.");
-            System.out.println("Usage: java AA_Weather port");
+            System.out.println("Error falta argumento.");
+            System.out.println("Uso: java AA_Weather port");
 
             System.exit(-1);
         }
 
         JSONParser parser = new JSONParser();
-
         JSONObject bd = new JSONObject();
+
         try {
-            bd = (JSONObject)parser.parse(new FileReader("./ciudades_temperaturas.json"));
+            bd = (JSONObject)parser.parse(new AA_Weather().getDB());
         } catch (IOException e) {
             System.out.println("No se ha podido abrir el archivo con las ciudades y temperaturas.");
             System.out.println("Ejecucón terminada.");
@@ -45,16 +50,12 @@ class AA_Weather {
 
             while(true) {
                 Socket socketCliente = socketServidor.accept();
-                InetSocketAddress clientAddress = (InetSocketAddress) socketCliente.getRemoteSocketAddress();
-                String clientIPAddress = clientAddress.getAddress().getHostAddress();
-    
-                System.out.println("Sirviendo a cliente con ip: " + clientIPAddress);
     
                 Thread hiloServidor = new AA_WeatherThread(socketCliente, bd);
                 hiloServidor.start();
             }
         } catch (IOException e) {
-            System.out.println("Socket couldn't be opened.");
+            System.out.println("El socket no se puedo abrir.");
         }
     }
 }

@@ -4,7 +4,6 @@ import java.util.Random;
 
 import org.json.simple.*;
 import Utils.MessageParser;
-import Utils.MessageParserException;
 
 public class AA_WeatherThread extends Thread {
     private final Socket socketCliente;
@@ -44,7 +43,7 @@ public class AA_WeatherThread extends Thread {
         return ciudades;
     }
 
-    private void mandarRespuesta(JSONObject ciudades) {
+    private boolean mandarRespuesta(JSONObject ciudades) {
         int numIntentos = 0;
         boolean cont = true;
         String mensaje;
@@ -58,34 +57,16 @@ public class AA_WeatherThread extends Thread {
 
         try {
             escribeSocket(sb.toString());
-
-            while (cont && numIntentos < 6) {
-                mensaje = leeSocket();
-                
-                if (mensaje.equals(Character.toString(MessageParser.ACKChar))) {
-                    cont = false;
-                }
-                else {
-                    numIntentos++;
-            
-                    escribeSocket(sb.toString());
-                }
-                
-                try {
-                    sleep(2000); // Sleep for 2s before sending again.
-                }
-                catch (InterruptedException e) {
-                    System.out.println("No se pudo pausar hilo sirviendo al cliente con ip: " + dirIPCliente);
-                }
-            }
+            return true;
         }
         catch (IOException e) {
             System.out.println("Error al utilizar socket con cliente con ip: " + dirIPCliente);
+            return false;
         }
     }
 
-    private void gestionarPeticion(JSONObject peticion) {
-        String numCiudadesStr = (String)peticion.get("ciudades");
+    private boolean gestionarPeticion(JSONObject peticion) {
+        String numCiudadesStr = peticion.get("ciudades").toString();
 
         if (numCiudadesStr != null) {
             try {
@@ -93,7 +74,7 @@ public class AA_WeatherThread extends Thread {
 
                 JSONObject ciudadesRespuesta = getCiudades(numeroCiudades);
 
-                mandarRespuesta(ciudadesRespuesta);                
+                return mandarRespuesta(ciudadesRespuesta);                
             }
             catch (NumberFormatException e) {
                 try {
@@ -103,42 +84,40 @@ public class AA_WeatherThread extends Thread {
                 }
             }
         }
+
+        return false;
     }
 
     @Override
     public void run() {
-        String mensaje;
+        System.out.println("Sirviendo a cliente con ip: " + dirIPCliente);
+
         boolean cont = true;
+        boolean respuestaEnviada = false;
     
         while (cont) {
             try {
-                mensaje = leeSocket();
+                String mensaje = leeSocket();
 
                 if (mensaje.equals(Character.toString(MessageParser.ENQChar))) {
                     escribeSocket(Character.toString(MessageParser.ACKChar));
                 }
                 else if (mensaje.equals(Character.toString(MessageParser.EOTChar))) {
                     cont = false;
+
+                    escribeSocket(Character.toString(MessageParser.EOTChar));
+
                     socketCliente.close();
                     System.out.println("Cerrada conexión con cliente con ip: " + dirIPCliente);
                 }
-                else {
+                else if (!(respuestaEnviada && mensaje.equals(Character.toString(MessageParser.ACKChar)))) {
                     MessageParser parser = new MessageParser();
 
-                    try {
-                        JSONObject peticion = parser.parseMessage(mensaje);
+                    JSONObject peticion = parser.parseMessage(mensaje);
 
-                        gestionarPeticion(peticion);
-                    } catch (MessageParserException e) {
-                        try {
-                            escribeSocket(Character.toString(MessageParser.NAKChar));
-                        } catch (IOException e1) {
-                            System.out.println("Error al enviar NAK al cliente con ip: " + dirIPCliente);
-                            cont = false;
-                        }
-                    }
+                    respuestaEnviada = gestionarPeticion(peticion);
                 }
-            } catch (IOException e) {
+            } catch (Exception e) {
                 try {
                     escribeSocket(Character.toString(MessageParser.NAKChar));
                 } catch (IOException e1) {
@@ -146,17 +125,13 @@ public class AA_WeatherThread extends Thread {
                     cont = false;
                 }
             }
-            finally {
-                if (!cont) {
-                    try {
-                        socketCliente.close();
-                        System.out.println("Cerrada conexión con cliente con ip: " + dirIPCliente);
-                    } catch (IOException e) {
-                        System.out.println("No se pudo cerrar el socket con el cliente con ip: " + dirIPCliente);
-                        cont = false;
-                    }
-                }
-            }
+        }
+    
+        try {
+            socketCliente.close();
+            System.out.println("Cerrada conexión con cliente con ip: " + dirIPCliente);
+        } catch (IOException e) {
+            System.out.println("No se pudo cerrar el socket con el cliente con ip: " + dirIPCliente);
         }
     }
 }
