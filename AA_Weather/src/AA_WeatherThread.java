@@ -106,9 +106,6 @@ public class AA_WeatherThread extends Thread {
                     cont = false;
 
                     escribeSocket(Character.toString(MessageParser.EOTChar));
-
-                    socketCliente.close();
-                    System.out.println("Cerrada conexión con cliente con ip: " + dirIPCliente);
                 }
                 else if (!(respuestaEnviada && mensaje.equals(Character.toString(MessageParser.ACKChar)))) {
                     MessageParser parser = new MessageParser();
