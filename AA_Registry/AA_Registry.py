@@ -55,6 +55,8 @@ def handle_client(conn, addr):
     ef=""
     ec=""
     connected = True
+    with open(PLAYERS_DB, mode='r', encoding='utf-8') as feedsjson:
+        feeds = json.load(feedsjson)
     #Controlar si el cliente ha solicitado registro
     reg=False
     while connected:
@@ -78,6 +80,13 @@ def handle_client(conn, addr):
                     #Registro iniciado
                     if reg:
                         if alias=="":
+                            duplicate=False
+                            for player in feeds:
+                                if player['alias']==msg:
+                                    duplicate=True
+                            if duplicate:
+                                conn.send(packet("Alias duplicado"))
+                                break
                             alias=msg
                             conn.send(packet("Nivel:"))
                         elif nivel=="":
@@ -104,8 +113,7 @@ def handle_client(conn, addr):
                                 conn.send(packet("EC no válido"))
                                 break
                             conn.send(packet("Registro completado"))
-                            with open(PLAYERS_DB, mode='r', encoding='utf-8') as feedsjson:
-                                feeds = json.load(feedsjson)
+                            
                             with open(PLAYERS_DB, mode='w', encoding=FORMAT) as feedsjson:
                                 entry={'alias':alias, 'nivel':nivel, 'ef':ef, 'ec':ec}
                                 feeds.append(entry)
