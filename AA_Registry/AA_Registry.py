@@ -2,9 +2,10 @@ import socket
 import sys
 import threading
 import pymongo
+import json
 
 SERVER = socket.gethostbyname(socket.gethostname())
-
+PLAYERS_DB="players.json"
 
 HEADER = 64
 ENQ = "\x05"
@@ -49,8 +50,13 @@ def nack(conn):
 
 def handle_client(conn, addr):
     print(f"[NUEVA CONEXION] {addr} connected.")
-
+    alias=""
+    nivel=""
+    ef=""
+    ec=""
     connected = True
+    #Controlar si el cliente ha solicitado registro
+    reg=False
     while connected:
         msg_length = conn.recv(HEADER).decode(FORMAT)
         if msg_length:
@@ -62,8 +68,52 @@ def handle_client(conn, addr):
                 if msg == ENQ:
                     ack(conn)
                 if check_lrc(msg):
+                    i=1
+                    while msg[i]!=ETX:
+                        i+=1
+                    msg=msg[1:i]
                     print(f" He recibido del cliente [{addr}] el mensaje: {msg}")
                     ack(conn)
+
+                    #Registro iniciado
+                    if reg:
+                        if alias=="":
+                            alias=msg
+                            conn.send(packet("Nivel:"))
+                        elif nivel=="":
+                            try:
+                                int_msg=int(msg)
+                                nivel=msg
+                            except:
+                                conn.send(packet("Nivel no válido"))
+                                break
+                            conn.send(packet("EF:"))
+                        elif ef=="":
+                            try:
+                                int_msg=int(msg)
+                                ef=msg
+                            except:
+                                conn.send(packet("EF no válido"))
+                                break
+                            conn.send(packet("EC:"))
+                        else:
+                            try:
+                                int_msg=int(msg)
+                                ec=msg
+                            except:
+                                conn.send(packet("EC no válido"))
+                                break
+                            conn.send(packet("Registro completado"))
+                            with open(PLAYERS_DB, mode='r', encoding='utf-8') as feedsjson:
+                                feeds = json.load(feedsjson)
+                            with open(PLAYERS_DB, mode='w', encoding=FORMAT) as feedsjson:
+                                entry={'alias':alias, 'nivel':nivel, 'ef':ef, 'ec':ec}
+                                feeds.append(entry)
+                                json.dump(feeds, feedsjson)
+
+                    if msg=="reg" and reg==False:
+                        reg=True
+                        conn.send(packet("Alias:"))
                 else:
                     print("Ha ocurrido un error con el mensaje")
                     nack(conn)
@@ -72,6 +122,8 @@ def handle_client(conn, addr):
 
 
 def start():
+    with open("PLAYERS.json", mode='w', encoding=FORMAT) as f:
+        json.dump([],f)
     server.listen()
     print(f"[LISTENING] Servidor a la escucha en {SERVER}")
     CONEX_ACTIVAS = threading.active_count()-1
@@ -92,6 +144,9 @@ def start():
 
 
 print("Registry starting...")
+
+
+
 """
 mongo_client = pymongo.MongoClient("mongodb://mongodb:27017/")
 db = mongo_client["customersdb"]
