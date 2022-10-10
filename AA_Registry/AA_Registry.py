@@ -1,7 +1,7 @@
 import socket
 import sys
 import threading
-#import pymongo
+import pymongo
 import json
 
 SERVER = socket.gethostbyname(socket.gethostname())
@@ -61,8 +61,11 @@ def handle_register(conn, addr):
     ef=""
     ec=""
     conn.send(packet("Alias:"))
-    with open(PLAYERS_DB, mode='r', encoding='utf-8') as feedsjson:
-        feeds = json.load(feedsjson)
+    #with open(PLAYERS_DB, mode='r', encoding='utf-8') as feedsjson:
+    #    feeds = json.load(feedsjson)
+    mongo_client = pymongo.MongoClient("mongodb://localhost:27017/")
+    db = mongo_client["playersdb"]
+    players = db["players"]
     connected = True
     while connected:
         msg_length = conn.recv(HEADER).decode(FORMAT)
@@ -80,13 +83,11 @@ def handle_register(conn, addr):
                     ack(conn)
 
                     if alias=="":
-                        duplicate=False
-                        for player in feeds:
-                            if player['alias']==msg:
-                                duplicate=True
-                        if duplicate:
+                        """
+                        if players.count_documents({"alias": msg}) > 0:
                             conn.send(packet("Alias duplicado"))
                             break
+                        """
                         alias=msg
                         conn.send(packet("Nivel:"))
                     elif nivel=="":
@@ -113,11 +114,14 @@ def handle_register(conn, addr):
                             conn.send(packet("EC no válido"))
                             break
                         conn.send(packet("FIN"))
-                        
+                        """
                         with open(PLAYERS_DB, mode='w', encoding=FORMAT) as feedsjson:
                             entry={'alias':alias, 'nivel':nivel, 'ef':ef, 'ec':ec}
                             feeds.append(entry)
                             json.dump(feeds, feedsjson)
+                        """
+                        entry={'alias':alias, 'nivel':nivel, 'ef':ef, 'ec':ec}
+                        x = players.insert_one(entry)
                 else:
                     print("Ha ocurrido un error con el mensaje")
                     nack(conn)
@@ -153,8 +157,8 @@ def handle_client(conn, addr):
 
 
 def start():
-    with open(PLAYERS_DB, mode='w', encoding=FORMAT) as f:
-        json.dump([],f)
+    #with open(PLAYERS_DB, mode='w', encoding=FORMAT) as f:
+    #    json.dump([],f)
     server.listen()
     print(f"[LISTENING] Servidor a la escucha en {SERVER}")
     CONEX_ACTIVAS = threading.active_count()-1
