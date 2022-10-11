@@ -401,3 +401,7 @@ cython_debug/
 # DO NOT IGNORE
 !AA_Weather/dependencies/*
 !AA_Weather/test-dependencies/*
+.vscode/launch.json
+.gitignore
+AA_Registry/PLAYERS.json
+AA_Registry/prueba.py
