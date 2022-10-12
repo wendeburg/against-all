@@ -16,7 +16,7 @@ class AA_Weather {
     public static void main(String[] args) {
         if (args.length < 1) {
             System.out.println("Error faltan argumentos.");
-            System.out.println("Uso: java AA_Weather port");
+            System.out.println("Uso: java -jar AA_Weather.jar puerto");
 
             System.exit(-1);
         }

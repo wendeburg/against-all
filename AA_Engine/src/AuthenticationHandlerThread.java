@@ -1,0 +1,123 @@
+import java.io.*;
+import java.net.*;
+
+import org.json.simple.JSONObject;
+
+import com.mongodb.BasicDBObject;
+import com.mongodb.DBObject;
+import com.mongodb.client.MongoCollection;
+
+import Utils.*;
+
+public class AuthenticationHandlerThread extends Thread {
+    private final Socket socketCliente;
+    private final String dirIPCliente;
+    private final MongoCollection usuarios;
+    private final RandomTokenGenerator tokenGenerator;
+    private final AuthenticationHandler.ControlNumeroJugadores numJugadores;
+
+    public AuthenticationHandlerThread(Socket socketCliente, MongoCollection usuarios, RandomTokenGenerator tokenGenerator, AuthenticationHandler.ControlNumeroJugadores numJugadores) {
+        this.socketCliente = socketCliente;
+        this.usuarios = usuarios;
+        this.tokenGenerator = tokenGenerator;
+        this.numJugadores = numJugadores;
+        
+        InetSocketAddress direccionCliente = (InetSocketAddress) socketCliente.getRemoteSocketAddress();
+        this.dirIPCliente = direccionCliente.getAddress().getHostAddress();
+    }
+
+    private String leeSocket() throws IOException {
+        DataInputStream dis = new DataInputStream(this.socketCliente.getInputStream());
+        return dis.readUTF();
+    }
+
+    private void escribeSocket(String mensaje) throws IOException {
+        DataOutputStream dos = new DataOutputStream(this.socketCliente.getOutputStream());
+        dos.writeUTF(mensaje);
+    }
+
+    private boolean mandarRespuesta(JSONObject res) {
+        MessageParser parser = new MessageParser();
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(MessageParser.STXChar);
+        sb.append(res.toString());
+        sb.append(MessageParser.ETXChar);
+        sb.append(parser.getStringLRC(res.toString()));
+
+        try {
+            escribeSocket(sb.toString());
+            return true;
+        }
+        catch (IOException e) {
+            System.out.println("Error al utilizar socket con cliente con ip: " + dirIPCliente);
+            return false;
+        }
+    }
+
+    private boolean gestionarPeticion(JSONObject peticion) {
+        DBObject user = usuarios.find(new BasicDBObject("alias", peticion.get("alias").toString())).one();
+
+        if (user.get("password").toString().equals(peticion.get("password").toString())) {
+            JSONObject respuesta = new JSONObject();
+            respuesta.put("token", tokenGenerator.generarToken());
+            
+            mandarRespuesta(respuesta);
+
+            return true;
+        }
+        else {
+            try {
+                escribeSocket(Character.toString(MessageParser.NAKChar));
+                return false;
+            } catch (IOException e) {
+                System.out.println("Error al enviar NAK al cliente con ip: " + dirIPCliente);
+                return false;
+            }
+        }
+    }
+
+    @Override
+    public void run() {
+        System.out.println("Sirviendo a cliente con ip: " + dirIPCliente);
+
+        boolean cont = true;
+        boolean respuestaEnviada = false;
+    
+        while (cont) {
+            try {
+                String mensaje = leeSocket();
+
+                if (mensaje.equals(Character.toString(MessageParser.ENQChar))) {
+                    escribeSocket(Character.toString(MessageParser.ACKChar));
+                }
+                else if (mensaje.equals(Character.toString(MessageParser.EOTChar))) {
+                    cont = false;
+
+                    escribeSocket(Character.toString(MessageParser.EOTChar));
+                }
+                else if (!(respuestaEnviada && mensaje.equals(Character.toString(MessageParser.ACKChar)))) {
+                    MessageParser parser = new MessageParser();
+
+                    JSONObject peticion = parser.parseMessage(mensaje);
+
+                    respuestaEnviada = gestionarPeticion(peticion);
+                }
+            } catch (Exception e) {
+                try {
+                    escribeSocket(Character.toString(MessageParser.NAKChar));
+                } catch (IOException e1) {
+                    System.out.println("Error al enviar NAK al cliente con ip: " + dirIPCliente);
+                    cont = false;
+                }
+            }
+        }
+    
+        try {
+            socketCliente.close();
+            System.out.println("Cerrada conexión con cliente con ip: " + dirIPCliente);
+        } catch (IOException e) {
+            System.out.println("No se pudo cerrar el socket con el cliente con ip: " + dirIPCliente);
+        }
+    }
+}
