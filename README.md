@@ -23,3 +23,7 @@ Ejemplo:
     "Sydney": 32
 }
 `
+
+### `AA_Engine - Autenticación`
+AA_Engine recibirá peticiones de autenticación con el formato `{"alias": aliasJugador, "password": contraseñaJugador}`. Y responderá con un mensaje cuyo cuerpo tendrá un objeto JSON donde se incluirá una "token" que identificará al usuario durante la partida.   
+Ejemplo: `{"token": 89323}`
