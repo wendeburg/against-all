@@ -1,10 +1,9 @@
 import java.io.*;
 import java.net.*;
 
+import org.bson.Document;
 import org.json.simple.JSONObject;
 
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBObject;
 import com.mongodb.client.MongoCollection;
 
 import Utils.*;
@@ -12,15 +11,13 @@ import Utils.*;
 public class AuthenticationHandlerThread extends Thread {
     private final Socket socketCliente;
     private final String dirIPCliente;
-    private final MongoCollection usuarios;
+    private final MongoCollection<Document> usuarios;
     private final RandomTokenGenerator tokenGenerator;
-    private final AuthenticationHandler.ControlNumeroJugadores numJugadores;
 
-    public AuthenticationHandlerThread(Socket socketCliente, MongoCollection usuarios, RandomTokenGenerator tokenGenerator, AuthenticationHandler.ControlNumeroJugadores numJugadores) {
+    public AuthenticationHandlerThread(Socket socketCliente, MongoCollection<Document> usuarios, RandomTokenGenerator tokenGenerator) {
         this.socketCliente = socketCliente;
         this.usuarios = usuarios;
         this.tokenGenerator = tokenGenerator;
-        this.numJugadores = numJugadores;
         
         InetSocketAddress direccionCliente = (InetSocketAddress) socketCliente.getRemoteSocketAddress();
         this.dirIPCliente = direccionCliente.getAddress().getHostAddress();
@@ -56,9 +53,10 @@ public class AuthenticationHandlerThread extends Thread {
     }
 
     private boolean gestionarPeticion(JSONObject peticion) {
-        DBObject user = usuarios.find(new BasicDBObject("alias", peticion.get("alias").toString())).one();
+        Document userToAuthenticate = new Document("alias", peticion.get("alias").toString());
+        Document user = usuarios.find(userToAuthenticate).first();
 
-        if (user.get("password").toString().equals(peticion.get("password").toString())) {
+        if (user != null && user.get("password").toString().equals(peticion.get("password").toString())) {
             JSONObject respuesta = new JSONObject();
             respuesta.put("token", tokenGenerator.generarToken());
             

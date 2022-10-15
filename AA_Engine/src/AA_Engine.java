@@ -1,3 +1,5 @@
+import Utils.RandomTokenGenerator;
+
 class AA_Engine {
     private AA_Engine() {}
 
@@ -27,11 +29,18 @@ class AA_Engine {
             ipDB = args[6];
             puertoDB = Integer.parseInt(args[7]);
 
-            AuthenticationHandler authThread = new AuthenticationHandler(puertoBroker, maxJugadores, ipDB, puertoDB);
+            RandomTokenGenerator tokenGenerator = new RandomTokenGenerator();
+            AuthenticationHandler authThread = new AuthenticationHandler(puerto, maxJugadores, ipDB, puertoDB, tokenGenerator);
             authThread.start();
-            System.out.println("Se acabó el tiempo!");
+    
+            authThread.join();
+
+            System.out.println(tokenGenerator.getTokensUsadas());
         }
-        catch (Exception e) {
+        catch (InterruptedException e) {
+            System.out.println("Error en un proceso de AA_Engine.");
+        }
+        catch (NumberFormatException e) {
             System.out.println("Error en tipo de argumentos.");
             System.out.println("Uso: java -jar AA_Engine.jar puerto max_jugadores ip_sv_clima puerto_sv_clima ip_broker puerto_broker ip_bd puerto_bd");
 

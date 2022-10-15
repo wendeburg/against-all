@@ -11,6 +11,10 @@ public class RandomTokenGenerator {
         tokensUsadas = new ArrayList<Integer>();
     }
 
+    public ArrayList<Integer> getTokensUsadas() {
+        return tokensUsadas;
+    }
+
     public int generarToken() {
         Random rand = new Random();
         int numeroAleatorio;
