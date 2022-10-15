@@ -65,7 +65,7 @@ public class AuthenticationHandlerThread extends Thread {
                 int tokenGenerada = tokenGenerator.generarToken();
 
                 jugadores.put(user.get("alias").toString(), tokenGenerada);
-                
+
                 respuesta.put("token", tokenGenerada);
                 
                 mandarRespuesta(respuesta);
@@ -111,7 +111,12 @@ public class AuthenticationHandlerThread extends Thread {
                 }
             } catch (Exception e) {
                 try {
-                    escribeSocket(Character.toString(MessageParser.NAKChar));
+                    if (!(e instanceof EOFException)) {
+                        escribeSocket(Character.toString(MessageParser.NAKChar));
+                    }
+                    else {
+                        break;
+                    }
                 } catch (IOException e1) {
                     System.out.println("Error al enviar NAK al cliente con ip: " + dirIPCliente);
                     cont = false;
