@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.*;
+import java.util.HashMap;
 
 import org.bson.Document;
 import org.json.simple.JSONObject;
@@ -13,10 +14,12 @@ public class AuthenticationHandlerThread extends Thread {
     private final String dirIPCliente;
     private final MongoCollection<Document> usuarios;
     private final RandomTokenGenerator tokenGenerator;
+    private final HashMap<String, Integer> jugadores;
 
-    public AuthenticationHandlerThread(Socket socketCliente, MongoCollection<Document> usuarios, RandomTokenGenerator tokenGenerator) {
+    public AuthenticationHandlerThread(Socket socketCliente, MongoCollection<Document> usuarios, HashMap<String, Integer> jugadores, RandomTokenGenerator tokenGenerator) {
         this.socketCliente = socketCliente;
         this.usuarios = usuarios;
+        this.jugadores = jugadores;
         this.tokenGenerator = tokenGenerator;
         
         InetSocketAddress direccionCliente = (InetSocketAddress) socketCliente.getRemoteSocketAddress();
@@ -57,21 +60,26 @@ public class AuthenticationHandlerThread extends Thread {
         Document user = usuarios.find(userToAuthenticate).first();
 
         if (user != null && user.get("password").toString().equals(peticion.get("password").toString())) {
-            JSONObject respuesta = new JSONObject();
-            respuesta.put("token", tokenGenerator.generarToken());
-            
-            mandarRespuesta(respuesta);
+            if (!jugadores.containsKey(user.get("alias"))) {
+                JSONObject respuesta = new JSONObject();
+                int tokenGenerada = tokenGenerator.generarToken();
 
-            return true;
-        }
-        else {
-            try {
-                escribeSocket(Character.toString(MessageParser.NAKChar));
-                return false;
-            } catch (IOException e) {
-                System.out.println("Error al enviar NAK al cliente con ip: " + dirIPCliente);
-                return false;
+                jugadores.put(user.get("alias").toString(), tokenGenerada);
+                
+                respuesta.put("token", tokenGenerada);
+                
+                mandarRespuesta(respuesta);
+    
+                return true;
             }
+        }
+
+        try {
+            escribeSocket(Character.toString(MessageParser.NAKChar));
+            return false;
+        } catch (IOException e) {
+            System.out.println("Error al enviar NAK al cliente con ip: " + dirIPCliente);
+            return false;
         }
     }
 

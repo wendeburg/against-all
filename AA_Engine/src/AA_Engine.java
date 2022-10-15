@@ -1,4 +1,4 @@
-import Utils.RandomTokenGenerator;
+import java.util.HashMap;
 
 class AA_Engine {
     private AA_Engine() {}
@@ -29,13 +29,13 @@ class AA_Engine {
             ipDB = args[6];
             puertoDB = Integer.parseInt(args[7]);
 
-            RandomTokenGenerator tokenGenerator = new RandomTokenGenerator();
-            AuthenticationHandler authThread = new AuthenticationHandler(puerto, maxJugadores, ipDB, puertoDB, tokenGenerator);
+            HashMap<String, Integer> jugadoresAutenticados = new HashMap<>();
+            AuthenticationHandler authThread = new AuthenticationHandler(puerto, maxJugadores, ipDB, puertoDB, jugadoresAutenticados);
             authThread.start();
     
             authThread.join();
 
-            System.out.println(tokenGenerator.getTokensUsadas());
+            System.out.println(jugadoresAutenticados.toString());
         }
         catch (InterruptedException e) {
             System.out.println("Error en un proceso de AA_Engine.");

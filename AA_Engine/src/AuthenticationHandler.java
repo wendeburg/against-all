@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.*;
+import java.util.HashMap;
 
 import org.bson.Document;
 
@@ -14,12 +15,12 @@ public class AuthenticationHandler extends Thread {
     private final int maxJugadores;
     private final MongoClient cliente;
     private final MongoCollection<Document> coleccionUsuarios;
-    private final RandomTokenGenerator tokenGenerator;
+    private final HashMap<String, Integer> jugadores;
 
-    public AuthenticationHandler(int puerto, int maxJugadores, String ipDB, int puertoDB, RandomTokenGenerator tokenGenerator) {
+    public AuthenticationHandler(int puerto, int maxJugadores, String ipDB, int puertoDB, HashMap<String, Integer> jugadores) {
         this.puerto = puerto;
         this.maxJugadores = maxJugadores;
-        this.tokenGenerator = tokenGenerator;
+        this.jugadores = jugadores;
 
         cliente = MongoClients.create("mongodb://" + ipDB + ":" + puertoDB);
         MongoDatabase db = cliente.getDatabase("against-all-db");
@@ -29,6 +30,7 @@ public class AuthenticationHandler extends Thread {
     @Override
     public void run() {
         ServerSocket socketServidor;
+        RandomTokenGenerator tokenGenerator = new RandomTokenGenerator();
         
         try {
             socketServidor = new ServerSocket(puerto);
@@ -39,7 +41,7 @@ public class AuthenticationHandler extends Thread {
             while((tokenGenerator.getTokensUsadas().size() <= maxJugadores && ((System.currentTimeMillis() / 1000) - tiempoInicial) <= 120) ) {
                 Socket socketCliente = socketServidor.accept();
     
-                Thread hiloServidor = new AuthenticationHandlerThread(socketCliente, coleccionUsuarios, tokenGenerator);
+                Thread hiloServidor = new AuthenticationHandlerThread(socketCliente, coleccionUsuarios, jugadores, tokenGenerator);
                 hiloServidor.start();
             }
         } catch (IOException e) {
