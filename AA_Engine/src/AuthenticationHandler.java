@@ -35,16 +35,25 @@ public class AuthenticationHandler extends Thread {
         try {
             socketServidor = new ServerSocket(puerto);
             System.out.println("Servidor de autenticación escuchando en el puerto: " + puerto);
+            System.out.println("Para cerrar el servidor de autenticación presiona \"q\"");
+
+            ClientWaiterThread waiter = new ClientWaiterThread(socketServidor, coleccionUsuarios, jugadores, tokenGenerator);
+
+            BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 
             long tiempoInicial = System.currentTimeMillis() / 1000;
+            waiter.start();
             // Se empieza la partida cuando se llena de jugadores o han pasado 120 segundos.
             while((tokenGenerator.getTokensUsadas().size() <= maxJugadores && ((System.currentTimeMillis() / 1000) - tiempoInicial) <= 120) ) {
-                Socket socketCliente = socketServidor.accept();
-    
-                Thread hiloServidor = new AuthenticationHandlerThread(socketCliente, coleccionUsuarios, jugadores, tokenGenerator);
-                hiloServidor.start();
+                String input = br.readLine();
+
+                if (input.equals("q")) {
+                    break;
+                }
             }
-        } catch (IOException e) {
+
+            return;
+        } catch (Exception e) {
             System.out.println("El socket no se puedo abrir.");
         }
         finally {
