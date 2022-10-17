@@ -75,18 +75,21 @@ public class GameHandler extends Thread {
         MessageParser parser = new MessageParser();
         JSONObject peticion = new JSONObject();
         peticion.put("ciudades", 4);
+        int intentos = 0;
 
         try {
             Socket socketCliente = new Socket(ipServidorClima, puertoServidorClima);
 
-            while (!respuestaStr.equals(Character.toString(MessageParser.ACKChar))) {
+            while (!respuestaStr.equals(Character.toString(MessageParser.ACKChar)) && intentos < 3) {
                 escribeSocket(Character.toString(MessageParser.ENQChar), socketCliente);
                 respuestaStr = leeSocket(socketCliente);
+                intentos++;
             }
 
             respuestaStr = "";
+            intentos = 0;
 
-            while (respuestaJSON == null) {
+            while (respuestaJSON == null && intentos < 3) {
                 mandarPeticion(peticion, socketCliente);
                 try {
                     respuestaJSON = parser.parseMessage(leeSocket(socketCliente));
@@ -95,11 +98,18 @@ public class GameHandler extends Thread {
                 } catch (MessageParserException e) {
                     respuestaJSON = null;
                 }
+                finally {
+                    intentos++;
+                }
             }
 
-            while (!respuestaStr.equals(Character.toString(MessageParser.EOTChar))) {
+            intentos = 0;
+            escribeSocket(Character.toString(MessageParser.ACKChar), socketCliente);
+
+            while (!respuestaStr.equals(Character.toString(MessageParser.EOTChar)) && intentos < 3) {
                 escribeSocket(Character.toString(MessageParser.EOTChar), socketCliente);
                 respuestaStr = leeSocket(socketCliente);
+                intentos++;
             }
             
             socketCliente.close();
@@ -108,8 +118,6 @@ public class GameHandler extends Thread {
         } catch (IOException e) {
             System.out.println("No se ha podido usar la conexión con el servidor del clima.");
         }
-
-        
     }
 
     @Override

@@ -33,12 +33,8 @@ class AA_Engine {
             AuthenticationHandler authThread = new AuthenticationHandler(puerto, maxJugadores, ipDB, puertoDB, jugadoresAutenticados);
             authThread.start();
     
-            authThread.join();
-
-            System.out.println(jugadoresAutenticados.toString());
-        }
-        catch (InterruptedException e) {
-            System.out.println("Error en un proceso de AA_Engine.");
+            GameHandler gameThread = new GameHandler(authThread, jugadoresAutenticados, ipBroker, puertoBroker, ipServidorClima, puertoServidorClima);
+            gameThread.start();
         }
         catch (NumberFormatException e) {
             System.out.println("Error en tipo de argumentos.");

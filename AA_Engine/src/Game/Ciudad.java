@@ -34,4 +34,9 @@ public class Ciudad {
     public void setTemperatura(float temperatura) {
         this.temperatura = temperatura;
     }
+
+    @Override
+    public String toString() {
+        return nombre + ": " + temperatura;
+    }
 }
