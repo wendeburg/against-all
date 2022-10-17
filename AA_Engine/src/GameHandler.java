@@ -121,7 +121,7 @@ public class GameHandler extends Thread {
 
 
         } catch (InterruptedException e) {
-            System.out.println("Se ha interrumpido el thread de Autenticación.")
+            System.out.println("Se ha interrumpido el thread de Autenticación.");
         }
     }
     
