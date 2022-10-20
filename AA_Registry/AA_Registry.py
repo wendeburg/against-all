@@ -77,8 +77,8 @@ def handle_register(conn, addr, op):
     #with open(PLAYERS_DB, mode='r', encoding='utf-8') as feedsjson:
     #    feeds = json.load(feedsjson)
     mongo_client = pymongo.MongoClient("mongodb://localhost:27017/")
-    db = mongo_client["playersdb"]
-    players = db["players"]
+    db = mongo_client["against-all-db"]
+    players = db["users"]
     connected = True
     while connected:
         msg_length = conn.recv(HEADER).decode(FORMAT)
@@ -142,7 +142,7 @@ def handle_register(conn, addr, op):
                             feeds.append(entry)
                             json.dump(feeds, feedsjson)
                         """
-                        entry={'alias':alias, 'passwd':contra, 'nivel':nivel, 'ef':ef, 'ec':ec}
+                        entry={'alias':alias, 'password':contra, 'nivel':nivel, 'ef':ef, 'ec':ec}
                         if edit_alias=="":
                             players.insert_one(entry)
                         else:
