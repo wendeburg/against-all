@@ -69,6 +69,7 @@ def nack(conn):
 def handle_register(conn, addr, op):
     edit_alias=""
     alias=""
+    contra=""
     nivel=""
     ef=""
     ec=""
@@ -100,7 +101,7 @@ def handle_register(conn, addr, op):
                                 conn.send(packet("ERROR: " + bcolors.FAIL + "Alias duplicado" + bcolors.ENDC))
                                 break
                             alias=msg
-                            conn.send(packet("Nivel:"))
+                            conn.send(packet("Contraseña:"))
                         else:
                             if players.count_documents({"alias": msg}) == 0:
                                 conn.send(packet("ERROR: " + bcolors.FAIL + "Alias no existe" + bcolors.ENDC))
@@ -108,6 +109,9 @@ def handle_register(conn, addr, op):
                             edit_alias=msg
                             conn.send(packet("Nuevo alias:"))
                             op="reg"
+                    elif contra=="":
+                        contra=msg
+                        conn.send(packet("Nivel:"))
                     elif nivel=="":
                         try:
                             int_msg=int(msg)
@@ -138,7 +142,7 @@ def handle_register(conn, addr, op):
                             feeds.append(entry)
                             json.dump(feeds, feedsjson)
                         """
-                        entry={'alias':alias, 'nivel':nivel, 'ef':ef, 'ec':ec}
+                        entry={'alias':alias, 'passwd':contra, 'nivel':nivel, 'ef':ef, 'ec':ec}
                         if edit_alias=="":
                             players.insert_one(entry)
                         else:
