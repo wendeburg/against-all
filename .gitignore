@@ -406,3 +406,4 @@ AA_Registry/prueba.py
 !AA_Weather/test-dependencies/*
 !AA_Engine/dependencies/*
 .vscode/launch.json
+.vscode/settings.json
