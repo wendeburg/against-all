@@ -1,5 +1,19 @@
 import socket
 import sys
+import os
+import time
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
 
 
 HEADER = 64
@@ -61,20 +75,21 @@ class Player:
         self.reg_addr = (reg_ip, reg_port)
     
 
-    def register(self):
+    def hacer_cosas(self, operation):
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server.connect(self.reg_addr)
         print (f"Establecida conexión en [{self.reg_addr}]")
-        send("reg", server)
+        send(operation, server)
         while server.recv(2048).decode(FORMAT)==ACK:
             msg_server = server.recv(2048).decode(FORMAT)
             if not check_lrc(msg_server):
                 print("Ha ocurrido un error en el lrc")
                 break
             msg_server=unpack(msg_server)
-            if msg_server=="FIN":
-                break
             print(msg_server)
+            if msg_server=="FIN" or msg_server[:5]=="ERROR":
+                
+                break
             msg=input()
             send(msg, server)
         else:
@@ -85,7 +100,28 @@ class Player:
 
 if (len(sys.argv)==3):
     player=Player(sys.argv[1], int(sys.argv[2]))
-    player.register()
+    while True:
+        os.system('cls')
+        print("---------------------------------")
+        print("     1. Registrarse")
+        print("     2. Editar perfil")
+        print("     3. Salir")
+        print("Opcion: ")
+        try:
+            opcion=int(input())
+        except:
+            
+            print(bcolors.FAIL + "Opcion incorrecta" + bcolors.ENDC)
+            time.sleep(2)
+            continue
+        if opcion==1:
+            player.hacer_cosas("reg")
+            time.sleep(2)
+        if opcion==2:
+            player.hacer_cosas("edit")
+            time.sleep(2)
+        if opcion==3:
+            break
 else:
     print("Oops!. Something went bad. I need following args: <Registry_Server_IP> <Registry_Server_Port>")
         
