@@ -4,6 +4,17 @@ import threading
 import pymongo
 import json
 
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
 SERVER = socket.gethostbyname(socket.gethostname())
 PLAYERS_DB="./AA_Registry/PLAYERS.json"
 
@@ -55,8 +66,10 @@ def ack(conn):
 def nack(conn):
     conn.send(NACK.encode(FORMAT))
 
-def handle_register(conn, addr):
+def handle_register(conn, addr, op):
+    edit_alias=""
     alias=""
+    contra=""
     nivel=""
     ef=""
     ec=""
@@ -64,8 +77,8 @@ def handle_register(conn, addr):
     #with open(PLAYERS_DB, mode='r', encoding='utf-8') as feedsjson:
     #    feeds = json.load(feedsjson)
     mongo_client = pymongo.MongoClient("mongodb://localhost:27017/")
-    db = mongo_client["playersdb"]
-    players = db["players"]
+    db = mongo_client["against-all-db"]
+    players = db["users"]
     connected = True
     while connected:
         msg_length = conn.recv(HEADER).decode(FORMAT)
@@ -83,12 +96,21 @@ def handle_register(conn, addr):
                     ack(conn)
 
                     if alias=="":
-                        """
-                        if players.count_documents({"alias": msg}) > 0:
-                            conn.send(packet("Alias duplicado"))
-                            break
-                        """
-                        alias=msg
+                        if op=="reg":
+                            if players.count_documents({"alias": msg}) > 0:
+                                conn.send(packet("ERROR: " + bcolors.FAIL + "Alias duplicado" + bcolors.ENDC))
+                                break
+                            alias=msg
+                            conn.send(packet("Contraseña:"))
+                        else:
+                            if players.count_documents({"alias": msg}) == 0:
+                                conn.send(packet("ERROR: " + bcolors.FAIL + "Alias no existe" + bcolors.ENDC))
+                                break
+                            edit_alias=msg
+                            conn.send(packet("Nuevo alias:"))
+                            op="reg"
+                    elif contra=="":
+                        contra=msg
                         conn.send(packet("Nivel:"))
                     elif nivel=="":
                         try:
@@ -120,8 +142,11 @@ def handle_register(conn, addr):
                             feeds.append(entry)
                             json.dump(feeds, feedsjson)
                         """
-                        entry={'alias':alias, 'nivel':nivel, 'ef':ef, 'ec':ec}
-                        x = players.insert_one(entry)
+                        entry={'alias':alias, 'password':contra, 'nivel':nivel, 'ef':ef, 'ec':ec}
+                        if edit_alias=="":
+                            players.insert_one(entry)
+                        else:
+                            players.find_one_and_replace({ "alias" : edit_alias }, entry)
                 else:
                     print("Ha ocurrido un error con el mensaje")
                     nack(conn)
@@ -146,9 +171,8 @@ def handle_client(conn, addr):
                     msg=unpack(msg)
                     print(f" He recibido del cliente [{addr}] el mensaje: {msg}")
                     ack(conn)
-
-                    if msg=="reg":
-                        connected = handle_register(conn, addr)
+                    connected = handle_register(conn, addr, msg)
+                    print("Connection ended")
                 else:
                     print("Ha ocurrido un error con el mensaje")
                     nack(conn)

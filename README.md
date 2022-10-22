@@ -24,6 +24,14 @@ Ejemplo:
 }
 `
 
+### `AA_Engine`
+Para representar un mapa se utiliza un array de arrays de ints. Cada celda del mapa tiene un significado según el valor que tenga:  
+0 - Vacio  
+1 - Alimento  
+2 - Mina  
+[3, 500] - NPC  
+[501, Integer.MAX_VALUE] - Juagdores  
+
 ### `AA_Engine - Autenticación`
 AA_Engine recibirá peticiones de autenticación con el formato `{"alias": aliasJugador, "password": contraseñaJugador}`. Y responderá con un mensaje cuyo cuerpo tendrá un objeto JSON donde se incluirá una "token" que identificará al usuario durante la partida.   
 Ejemplo: `{"token": 89323}`

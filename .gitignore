@@ -405,3 +405,12 @@ AA_Registry/prueba.py
 !AA_Weather/dependencies/*
 !AA_Weather/test-dependencies/*
 !AA_Engine/dependencies/*
+.vscode/launch.json
+.vscode/settings.json
+AA_Engine/.vscode/launch.json
+.gitignore
+AA_Player/.vscode/launch.json
+AA_Registry/.vscode/launch.json
+AA_Engine/.vscode/launch.json
+AA_Engine/.vscode/launch.json
+AA_Engine/.vscode/launch.json
