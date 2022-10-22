@@ -9,30 +9,35 @@ import org.bson.Document;
 
 import com.mongodb.client.MongoCollection;
 
+import Game.Jugador;
 import Utils.RandomTokenGenerator;
 
 public class ClientWaiterThread extends Thread {
     private final ServerSocket socketServidor;
     private final MongoCollection<Document> coleccionUsuarios;
-    private final HashMap<String, Integer> jugadores;
+    private final HashMap<String, Jugador> jugadores;
     private final RandomTokenGenerator tokenGenerator;
+    private final int maxJugadores;
 
-    public ClientWaiterThread(ServerSocket socketServidor, MongoCollection<Document> coleccionUsuarios, HashMap<String, Integer> jugadores, RandomTokenGenerator tokenGenerator) {
+    public ClientWaiterThread(ServerSocket socketServidor, MongoCollection<Document> coleccionUsuarios, HashMap<String, Jugador> jugadores, RandomTokenGenerator tokenGenerator, int maxJugadores) {
         this.socketServidor = socketServidor;
         this.coleccionUsuarios = coleccionUsuarios;
         this.jugadores = jugadores;
         this.tokenGenerator = tokenGenerator;
+        this.maxJugadores = maxJugadores;
     }
 
     public void run() {
         Socket socketCliente;
         try {
-            socketCliente = socketServidor.accept();
+            while (jugadores.size() < maxJugadores) {
+                socketCliente = socketServidor.accept();
 
-            Thread hiloServidor = new AuthenticationHandlerThread(socketCliente, coleccionUsuarios, jugadores, tokenGenerator);
-            hiloServidor.start();
+                Thread hiloServidor = new AuthenticationHandlerThread(socketCliente, coleccionUsuarios, jugadores, tokenGenerator, maxJugadores);
+                hiloServidor.start();
+            }
         } catch (IOException e) {
-            throw new RuntimeErrorException(null);
+            // Do nothing.
         }
     }
 }
