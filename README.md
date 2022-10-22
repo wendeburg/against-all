@@ -25,7 +25,7 @@ Ejemplo:
 `
 
 ### `AA_Engine`
-Para representar un mapa se utiliza un array de arrays de ints. Cada celda del mapa tiene un significado según el valor que tenga:
+Para representar un mapa se utiliza un array de arrays de ints. Cada celda del mapa tiene un significado según el valor que tenga:  
 0 - Vacio  
 1 - Alimento  
 2 - Mina  
