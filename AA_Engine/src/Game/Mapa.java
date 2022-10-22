@@ -57,4 +57,20 @@ public class Mapa {
             }
         }
     }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+
+        for (ArrayList<Integer> fila : mapa) {
+            for (int j = 0; j < fila.size(); j++) {
+                sb.append(fila.get(j));
+                sb.append(" ");
+            }
+
+            sb.append("\n");
+        }
+        
+        return sb.toString();
+    }
 }

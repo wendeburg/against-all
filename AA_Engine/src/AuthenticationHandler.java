@@ -18,10 +18,10 @@ public class AuthenticationHandler extends Thread {
     private final MongoCollection<Document> coleccionUsuarios;
     private final HashMap<String, Jugador> jugadores;
 
-    public AuthenticationHandler(int puerto, int maxJugadores, String ipDB, int puertoDB, HashMap<String, Jugador> jugadores) {
+    public AuthenticationHandler(int puerto, int maxJugadores, String ipDB, int puertoDB) {
         this.puerto = puerto;
         this.maxJugadores = maxJugadores;
-        this.jugadores = jugadores;
+        this.jugadores = new HashMap<>();
 
         cliente = MongoClients.create("mongodb://" + ipDB + ":" + puertoDB);
         MongoDatabase db = cliente.getDatabase("against-all-db");
@@ -30,6 +30,10 @@ public class AuthenticationHandler extends Thread {
 
     public static class ConsoleInput {
         public volatile String input = "";
+    }
+
+    public HashMap<String, Jugador> getJugadores() {
+        return jugadores;
     }
 
     @Override
@@ -52,9 +56,10 @@ public class AuthenticationHandler extends Thread {
             ciwt.start();
             // Se empieza la partida cuando se llena de jugadores o han pasado 120 segundos.
             while(jugadores.size() < maxJugadores && ((System.currentTimeMillis() / 1000) - tiempoInicial) <= 120 && !ci.input.equals("q")) {
-                // Wait for something to finish thread.
+                // Esperar a que alguna condiciómn se cumpla para terminar con el hilo.
             }
 
+            System.out.println("He muerto, auththread");
             return;
         } catch (Exception e) {
             System.out.println("El socket no se puedo abrir.");

@@ -132,6 +132,7 @@ public class AuthenticationHandlerThread extends Thread {
         try {
             socketCliente.close();
             System.out.println("Cerrada conexión con cliente con ip: " + dirIPCliente);
+            System.out.println("He muerto, socketconcliente");
         } catch (IOException e) {
             System.out.println("No se pudo cerrar el socket con el cliente con ip: " + dirIPCliente);
         }

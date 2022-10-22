@@ -22,6 +22,7 @@ public class ConsoleInputWaiterThread extends Thread {
             }
         }
 
+        System.out.println("He muerto, consoleinputthread");
         consoleInput.input = "q";
     }
 }

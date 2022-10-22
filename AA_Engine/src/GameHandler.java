@@ -21,7 +21,7 @@ public class GameHandler extends Thread {
     private final String ipServidorClima;
     private final int puertoServidorClima;
     private ArrayList<Ciudad> ciudades;
-    HashMap<String, Jugador> jugadores;
+    private HashMap<String, Jugador> jugadores;
     private Mapa mapa;
 
     public GameHandler(AuthenticationHandler authThread, String ipBroker, int puertoBroker, String ipServidorCLima, int puertoServidorClima) {
@@ -124,19 +124,19 @@ public class GameHandler extends Thread {
         }
     }
 
-    public void setJugadores(HashMap<String, Jugador> jugadores) {
-        this.jugadores = jugadores;
-    }
-
     @Override
     public void run() {
         obtenerCiudades();
 
-        while (jugadores == null) {
-            // Block thread until all players have been authenticated.
-        }
+        try {
+            authThread.join();
 
-        System.out.print("wohoo!");
+            jugadores = authThread.getJugadores();
+            mapa.addPlayers(jugadores);
+
+            System.out.println(mapa.toString());
+        } catch (InterruptedException e) {
+            System.out.println("No se puede esperar al hilo d autenticación porque se ha interrumpido.");
+        }
     }
-    
 }

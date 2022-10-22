@@ -31,23 +31,26 @@ class AA_Engine {
             ipDB = args[6];
             puertoDB = Integer.parseInt(args[7]);
 
-            HashMap<String, Jugador> jugadoresAutenticados = new HashMap<>();
-            AuthenticationHandler authThread = new AuthenticationHandler(puerto, maxJugadores, ipDB, puertoDB, jugadoresAutenticados);
+            AuthenticationHandler authThread = new AuthenticationHandler(puerto, maxJugadores, ipDB, puertoDB);
             authThread.start();
             
-            //GameHandler gameThread = new GameHandler(authThread, ipBroker, puertoBroker, ipServidorClima, puertoServidorClima);
-            //gameThread.start();
+            GameHandler gameThread = new GameHandler(authThread, ipBroker, puertoBroker, ipServidorClima, puertoServidorClima);
+            gameThread.start();
 
-            authThread.join();
-            //gameThread.setJugadores(jugadoresAutenticados);
+            try {
+                gameThread.join();
+            } catch (InterruptedException e) {
+                System.out.println("No se puede esperar al hilo d autenticación porque se ha interrumpido.");
+            }
+            
+            System.exit(0);
+
         }
         catch (NumberFormatException e) {
             System.out.println("Error en tipo de argumentos.");
             System.out.println("Uso: java -jar AA_Engine.jar puerto max_jugadores ip_sv_clima puerto_sv_clima ip_broker puerto_broker ip_bd puerto_bd");
 
             System.exit(-1);
-        } catch (InterruptedException e) {
-            System.out.println("No se puede esperar al hilo d autenticación porque se ha interrumpido.");
         }
     }
 }

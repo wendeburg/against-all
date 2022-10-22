@@ -37,7 +37,7 @@ public class ClientWaiterThread extends Thread {
                 hiloServidor.start();
             }
         } catch (IOException e) {
-            // Do nothing.
+            System.out.println("He muerto, clientwaiter");
         }
     }
 }
