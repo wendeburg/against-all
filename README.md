@@ -35,3 +35,7 @@ Para representar un mapa se utiliza un array de arrays de ints. Cada celda del m
 ### `AA_Engine - Autenticación`
 AA_Engine recibirá peticiones de autenticación con el formato `{"alias": aliasJugador, "password": contraseñaJugador}`. Y responderá con un mensaje cuyo cuerpo tendrá un objeto JSON donde se incluirá una "token" que identificará al usuario durante la partida.   
 Ejemplo: `{"token": 89323}`
+
+### `AA_Engine - Juego`
+AA_Engine hace uso de 2 topics de Apache Kafka. El primer topic se llama GAME y es donde AA_Engine publicará un objeto JSON que tendrá a su vez otros 2 objetos. El primer objeto "mapa" será un array de 20 arrays de 20 enteros y el segundo objeto "jugadores" será un objeto cuyas claves serán los tokens de los jugadores y cuyos valores otro objeto con información de los jugadores, por ejemplo: . El segundo se llamará PLAYERMOVEMENTS y es donde los jugadores publicaran sus movimientos para que AA_Engine los consuma.  
+Ejemplo: `{"mapa": [[0, 1, 0, 893493, ...], [0, 123123, 0, 2, ...], ...], "jugadores": {"893493": {"alias": "ejemplo", "nivel": 9}, "123123": {"alias": "ejemplo2", "nivel": 19}}}`
