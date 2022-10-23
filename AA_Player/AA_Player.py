@@ -126,6 +126,7 @@ class Player:
             return None
         msg_server=unpack(msg_server)
         print(msg_server)
+        self.token = json.loads(msg_server).get("token")
 
         send(EOT, server)        
         server.close()

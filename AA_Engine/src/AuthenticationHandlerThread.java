@@ -67,7 +67,7 @@ public class AuthenticationHandlerThread extends Thread {
                 JSONObject respuesta = new JSONObject();
                 int tokenGenerada = tokenGenerator.generarToken();
 
-                Jugador nuevoJugador = new Jugador(Integer.parseInt(user.get("nivel").toString()), tokenGenerada, user.get("alias").toString(), Integer.parseInt(user.get("efectoFrio").toString()), Integer.parseInt(user.get("efectoCalor").toString()));
+                Jugador nuevoJugador = new Jugador(Integer.parseInt(user.get("nivel").toString()), tokenGenerada, user.get("alias").toString(), Integer.parseInt(user.get("ef").toString()), Integer.parseInt(user.get("ec").toString()));
 
                 jugadores.put(user.get("alias").toString(), nuevoJugador);
 
