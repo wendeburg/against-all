@@ -3,6 +3,7 @@ import sys
 import os
 import time
 import json
+import struct
 
 class bcolors:
     HEADER = '\033[95m'
@@ -22,26 +23,27 @@ FORMAT = 'utf-8'
 FIN = "FIN"
 ENQ = "\x05"
 ACK = "\x06"
-NACK = "\x25"
+NACK = "\x15"
 STX = "\x02"
 ETX = "\x03"
 EOT = "\x04"
 
 def send(msg, client):
-    if msg != EOT:
-        message = packet(msg)
+    if msg != EOT and msg != ACK and msg != NACK:
+        message = pack_msg(msg)
     else:
-        message = msg.encode(FORMAT)
-    msg_length = len(message)
-    send_length = str(msg_length).encode(FORMAT)
-    send_length += b' ' * (HEADER - len(send_length))
-    client.send(send_length)
+        message = pack_signal(FORMAT)
     client.send(message)
 
-def packet(msg):
+def pack_signal(msg):
+    msg = struct.pack(">H", len(msg)) + msg.encode(FORMAT)
+    return msg
+
+def pack_msg(msg):
     lrc = get_lrc(msg.encode(FORMAT))
     msg = STX + msg + ETX
-    msg = msg.encode(FORMAT) + str(lrc).encode(FORMAT)
+    msg += str(lrc)
+    msg = struct.pack(">H", len(msg)) + msg.encode(FORMAT)
     return msg
 
 def get_lrc(msg):
@@ -50,7 +52,8 @@ def get_lrc(msg):
         lrc ^= b
     return lrc
 
-def check_lrc(msg):
+def check_lrc(message):
+    msg = message[2:]
     if msg[0] == STX:
         try:
             i = 1
@@ -63,7 +66,8 @@ def check_lrc(msg):
             return True
     return False
 
-def unpack(msg):
+def unpack(message):
+    msg = message[2:]
     i=1
     while msg[i]!=ETX:
         i+=1
@@ -108,14 +112,22 @@ class Player:
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server.connect(self.engine_addr)
         print (f"Establecida conexión en [{self.engine_addr}]")
-        server.send(packet(json.dumps(entry)))
+        send(json.dumps(entry), server)
         msg_server = server.recv(2048).decode(FORMAT)
+        if msg_server[2:]==NACK:
+            print("NACK")
+            send(EOT, server)        
+            server.close()
+            return None
         if not check_lrc(msg_server):
             print("Ha ocurrido un error en el lrc")
+            send(EOT, server)        
+            server.close()
+            return None
         msg_server=unpack(msg_server)
         print(msg_server)
 
-        server.send(packet(EOT))        
+        send(EOT, server)        
         server.close()
 
 
