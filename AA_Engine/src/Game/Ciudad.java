@@ -39,4 +39,18 @@ public class Ciudad {
     public String toString() {
         return nombre + ": " + temperatura;
     }
+
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == this)
+            return true;
+        
+        if (!(o instanceof Ciudad)) {
+            return false;
+        }
+
+        Ciudad otraCiudad = (Ciudad) o;
+        return this.nombre.equals(otraCiudad.nombre) && temperatura == otraCiudad.temperatura;
+    }
 }
