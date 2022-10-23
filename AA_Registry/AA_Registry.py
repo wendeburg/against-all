@@ -33,7 +33,7 @@ def send(msg, client):
     if msg != EOT and msg != ACK and msg != NACK:
         message = pack_msg(msg)
     else:
-        message = pack_signal(FORMAT)
+        message = pack_signal(msg)
     client.send(message)
 
 def pack_signal(msg):
@@ -47,8 +47,7 @@ def pack_msg(msg):
     msg = struct.pack(">H", len(msg)) + msg.encode(FORMAT)
     return msg
 
-def get_lrc(message):
-    msg = message[2:]
+def get_lrc(msg):
     lrc = 0
     for b in msg:
         lrc ^= b
@@ -91,75 +90,72 @@ def handle_register(conn, addr, op):
     players = db["users"]
     connected = True
     while connected:
-        msg_length = conn.recv(HEADER).decode(FORMAT)
-        if msg_length:
-            msg_length = int(msg_length)
-            msg = conn.recv(msg_length).decode(FORMAT)
-            if msg == EOT:
-                connected = False
-            else:
-                if msg == ENQ:
-                    send(ACK, conn)
-                if check_lrc(msg):
-                    msg=unpack(msg)
-                    print(f" He recibido del cliente [{addr}] el mensaje: {msg}")
-                    send(ACK, conn)
+        msg = conn.recv(2048).decode(FORMAT)
+        if msg[2:] == EOT:
+            connected = False
+        else:
+            if msg[2:] == ENQ:
+                send(ACK, conn)
+            if check_lrc(msg):
+                msg=unpack(msg)
+                print(f" He recibido del cliente [{addr}] el mensaje: {msg}")
+                send(ACK, conn)
 
-                    if alias=="":
-                        if op=="reg":
-                            if players.count_documents({"alias": msg}) > 0:
-                                send("ERROR: " + bcolors.FAIL + "Alias duplicado" + bcolors.ENDC, conn)
-                                break
-                            alias=msg
-                            send("Contraseña:", conn)
-                        else:
-                            if players.count_documents({"alias": msg}) == 0:
-                                send("ERROR: " + bcolors.FAIL + "Alias no existe" + bcolors.ENDC, conn)
-                                break
-                            edit_alias=msg
-                            send("Nuevo alias:", conn)
-                            op="reg"
-                    elif contra=="":
-                        contra=msg
-                        send("Nivel:", conn)
-                    elif nivel=="":
-                        try:
-                            int_msg=int(msg)
-                            nivel=msg
-                        except:
-                            send("Nivel no válido", conn)
+                if alias=="":
+                    if op=="reg":
+                        if players.count_documents({"alias": msg}) > 0:
+                            send("ERROR: " + bcolors.FAIL + "Alias duplicado" + bcolors.ENDC, conn)
                             break
-                        send("EF:", conn)
-                    elif ef=="":
-                        try:
-                            int_msg=int(msg)
-                            ef=msg
-                        except:
-                            send("EF no válido", conn)
-                            break
-                        send("EC:", conn)
+                        alias=msg
+                        send("Contraseña:", conn)
                     else:
-                        try:
-                            int_msg=int(msg)
-                            ec=msg
-                        except:
-                            send("EC no válido", conn)
+                        if players.count_documents({"alias": msg}) == 0:
+                            send("ERROR: " + bcolors.FAIL + "Alias no existe" + bcolors.ENDC, conn)
                             break
-                        send("FIN", conn)
-                        """
-                        with open(PLAYERS_DB, mode='w', encoding=FORMAT) as feedsjson:
-                            entry={'alias':alias, 'nivel':nivel, 'ef':ef, 'ec':ec}
-                            feeds.append(entry)
-                            json.dump(feeds, feedsjson)
-                        """
-                        entry={'alias':alias, 'password':contra, 'nivel':nivel, 'ef':ef, 'ec':ec}
-                        if edit_alias=="":
-                            players.insert_one(entry)
-                        else:
-                            players.find_one_and_replace({ "alias" : edit_alias }, entry)
+                        edit_alias=msg
+                        send("Nuevo alias:", conn)
+                        op="reg"
+                elif contra=="":
+                    contra=msg
+                    send("Nivel:", conn)
+                elif nivel=="":
+                    try:
+                        int_msg=int(msg)
+                        nivel=msg
+                    except:
+                        send("Nivel no válido", conn)
+                        break
+                    send("EF:", conn)
+                elif ef=="":
+                    try:
+                        int_msg=int(msg)
+                        ef=msg
+                    except:
+                        send("EF no válido", conn)
+                        break
+                    send("EC:", conn)
                 else:
-                    print("Ha ocurrido un error con el mensaje")
-                    send(NACK, conn)
+                    try:
+                        int_msg=int(msg)
+                        ec=msg
+                    except:
+                        send("EC no válido", conn)
+                        break
+                    send("FIN", conn)
+                    """
+                    with open(PLAYERS_DB, mode='w', encoding=FORMAT) as feedsjson:
+                        entry={'alias':alias, 'nivel':nivel, 'ef':ef, 'ec':ec}
+                        feeds.append(entry)
+                        json.dump(feeds, feedsjson)
+                    """
+                    entry={'alias':alias, 'password':contra, 'nivel':nivel, 'ef':ef, 'ec':ec}
+                    if edit_alias=="":
+                        players.insert_one(entry)
+                    else:
+                        players.find_one_and_replace({ "alias" : edit_alias }, entry)
+            else:
+                print("Ha ocurrido un error con el mensaje")
+                send(NACK, conn)
     return False
     
 
@@ -168,24 +164,21 @@ def handle_client(conn, addr):
     
     connected = True
     while connected:
-        msg_length = conn.recv(HEADER).decode(FORMAT)
-        if msg_length:
-            msg_length = int(msg_length)
-            msg = conn.recv(msg_length).decode(FORMAT)
-            if msg == EOT:
-                connected = False
+        msg = conn.recv(2048).decode(FORMAT)
+        if msg[2:] == EOT:
+            connected = False
+        else:
+            if msg[2:] == ENQ:
+                send(ACK, conn)
+            if check_lrc(msg):
+                msg=unpack(msg)
+                print(f" He recibido del cliente [{addr}] el mensaje: {msg}")
+                send(ACK, conn)
+                connected = handle_register(conn, addr, msg)
+                print("Connection ended")
             else:
-                if msg == ENQ:
-                    send(ACK, conn)
-                if check_lrc(msg):
-                    msg=unpack(msg)
-                    print(f" He recibido del cliente [{addr}] el mensaje: {msg}")
-                    send(ACK, conn)
-                    connected = handle_register(conn, addr, msg)
-                    print("Connection ended")
-                else:
-                    print("Ha ocurrido un error con el mensaje")
-                    send(NACK, conn)
+                print("Ha ocurrido un error con el mensaje")
+                send(NACK, conn)
     print("ADIOS. TE ESPERO EN OTRA OCASION")
     conn.close()
 

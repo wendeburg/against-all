@@ -32,7 +32,7 @@ def send(msg, client):
     if msg != EOT and msg != ACK and msg != NACK:
         message = pack_msg(msg)
     else:
-        message = pack_signal(FORMAT)
+        message = pack_signal(msg)
     client.send(message)
 
 def pack_signal(msg):
@@ -85,7 +85,8 @@ class Player:
         server.connect(self.reg_addr)
         print (f"Establecida conexión en [{self.reg_addr}]")
         send(operation, server)
-        while server.recv(2048).decode(FORMAT)==ACK:
+        msg_server = server.recv(2048).decode(FORMAT)
+        while msg_server[2:]==ACK:
             msg_server = server.recv(2048).decode(FORMAT)
             if not check_lrc(msg_server):
                 print("Ha ocurrido un error en el lrc")
@@ -97,6 +98,7 @@ class Player:
                 break
             msg=input()
             send(msg, server)
+            msg_server = server.recv(2048).decode(FORMAT)
         else:
             print("Ha ocurrido un error: nack")
 
