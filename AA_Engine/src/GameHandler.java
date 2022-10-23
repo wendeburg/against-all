@@ -6,11 +6,11 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import org.bson.json.JsonMode;
 import org.json.simple.JSONObject;
 
 import Game.Ciudad;
-
+import Game.Jugador;
+import Game.Mapa;
 import Utils.MessageParser;
 import Utils.MessageParserException;
 
@@ -21,8 +21,10 @@ public class GameHandler extends Thread {
     private final String ipServidorClima;
     private final int puertoServidorClima;
     private ArrayList<Ciudad> ciudades;
+    private HashMap<String, Jugador> jugadores;
+    private Mapa mapa;
 
-    public GameHandler(AuthenticationHandler authThread, HashMap<String, Integer> jugadores, String ipBroker, int puertoBroker, String ipServidorCLima, int puertoServidorClima) {
+    public GameHandler(AuthenticationHandler authThread, String ipBroker, int puertoBroker, String ipServidorCLima, int puertoServidorClima) {
         this.authThread = authThread;
         this.ipBroker = ipBroker;
         this.puertoBroker = puertoBroker;
@@ -34,6 +36,8 @@ public class GameHandler extends Thread {
         for (int i = 0; i < 4; i++) {
             ciudades.add(new Ciudad());
         }
+
+        this.mapa = new Mapa();
     }
 
     private String leeSocket(Socket socketCliente) throws IOException {
@@ -127,10 +131,12 @@ public class GameHandler extends Thread {
         try {
             authThread.join();
 
+            jugadores = authThread.getJugadores();
+            mapa.addPlayers(jugadores);
 
+            System.out.println(mapa.toString());
         } catch (InterruptedException e) {
-            System.out.println("Se ha interrumpido el thread de Autenticación.");
+            System.out.println("No se puede esperar al hilo d autenticación porque se ha interrumpido.");
         }
     }
-    
 }

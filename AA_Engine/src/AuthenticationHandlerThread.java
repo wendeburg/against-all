@@ -7,6 +7,7 @@ import org.json.simple.JSONObject;
 
 import com.mongodb.client.MongoCollection;
 
+import Game.Jugador;
 import Utils.*;
 
 public class AuthenticationHandlerThread extends Thread {
@@ -14,13 +15,15 @@ public class AuthenticationHandlerThread extends Thread {
     private final String dirIPCliente;
     private final MongoCollection<Document> usuarios;
     private final RandomTokenGenerator tokenGenerator;
-    private final HashMap<String, Integer> jugadores;
+    private final HashMap<String, Jugador> jugadores;
+    private final int maxJugadores;
 
-    public AuthenticationHandlerThread(Socket socketCliente, MongoCollection<Document> usuarios, HashMap<String, Integer> jugadores, RandomTokenGenerator tokenGenerator) {
+    public AuthenticationHandlerThread(Socket socketCliente, MongoCollection<Document> usuarios, HashMap<String, Jugador> jugadores, RandomTokenGenerator tokenGenerator, int maxJugadores) {
         this.socketCliente = socketCliente;
         this.usuarios = usuarios;
         this.jugadores = jugadores;
         this.tokenGenerator = tokenGenerator;
+        this.maxJugadores = maxJugadores;
         
         InetSocketAddress direccionCliente = (InetSocketAddress) socketCliente.getRemoteSocketAddress();
         this.dirIPCliente = direccionCliente.getAddress().getHostAddress();
@@ -60,11 +63,13 @@ public class AuthenticationHandlerThread extends Thread {
         Document user = usuarios.find(userToAuthenticate).first();
 
         if (user != null && user.get("password").toString().equals(peticion.get("password").toString())) {
-            if (!jugadores.containsKey(user.get("alias"))) {
+            if (!jugadores.containsKey(user.get("alias")) && jugadores.size() < maxJugadores) {
                 JSONObject respuesta = new JSONObject();
                 int tokenGenerada = tokenGenerator.generarToken();
 
-                jugadores.put(user.get("alias").toString(), tokenGenerada);
+                Jugador nuevoJugador = new Jugador(Integer.parseInt(user.get("nivel").toString()), tokenGenerada, user.get("alias").toString(), Integer.parseInt(user.get("efectoFrio").toString()), Integer.parseInt(user.get("efectoCalor").toString()));
+
+                jugadores.put(user.get("alias").toString(), nuevoJugador);
 
                 respuesta.put("token", tokenGenerada);
                 
@@ -127,6 +132,7 @@ public class AuthenticationHandlerThread extends Thread {
         try {
             socketCliente.close();
             System.out.println("Cerrada conexión con cliente con ip: " + dirIPCliente);
+            System.out.println("He muerto, socketconcliente");
         } catch (IOException e) {
             System.out.println("No se pudo cerrar el socket con el cliente con ip: " + dirIPCliente);
         }

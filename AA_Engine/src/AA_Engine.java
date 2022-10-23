@@ -1,5 +1,7 @@
 import java.util.HashMap;
 
+import Game.Jugador;
+
 class AA_Engine {
     private AA_Engine() {}
 
@@ -29,12 +31,20 @@ class AA_Engine {
             ipDB = args[6];
             puertoDB = Integer.parseInt(args[7]);
 
-            HashMap<String, Integer> jugadoresAutenticados = new HashMap<>();
-            AuthenticationHandler authThread = new AuthenticationHandler(puerto, maxJugadores, ipDB, puertoDB, jugadoresAutenticados);
+            AuthenticationHandler authThread = new AuthenticationHandler(puerto, maxJugadores, ipDB, puertoDB);
             authThread.start();
-    
-            GameHandler gameThread = new GameHandler(authThread, jugadoresAutenticados, ipBroker, puertoBroker, ipServidorClima, puertoServidorClima);
+            
+            GameHandler gameThread = new GameHandler(authThread, ipBroker, puertoBroker, ipServidorClima, puertoServidorClima);
             gameThread.start();
+
+            try {
+                gameThread.join();
+            } catch (InterruptedException e) {
+                System.out.println("No se puede esperar al hilo d autenticación porque se ha interrumpido.");
+            }
+            
+            System.exit(0);
+
         }
         catch (NumberFormatException e) {
             System.out.println("Error en tipo de argumentos.");
