@@ -33,14 +33,14 @@ Para representar un mapa se utiliza un array de arrays de ints. Cada celda del m
 [501, Integer.MAX_VALUE] - Juagdores  
 
 Los movimientos permitidos en el mapa son:  
-AR - Arriba  
-AB - Abajo  
-IZ - Izquierda  
-DE - Derecha  
-ARIZ - Arriba Izquierda  
-ARDE - Arriba Derecha  
-ABIZ - Abajo Izquierda  
-ABDE - Abajo Derecha  
+N - Norte
+S - Sur 
+E - Este
+W - Oeste  
+NE - Noreste
+NW - Noroeste
+SE - Sureste
+SW - Suroeste
 KA - Keepalive - Si el jugador no envia ningún movimiento luego de 2 segundos se envia este movimiento para informarle al servidor que el usuario sigue conectado.  
 
 ### `AA_Engine - Autenticación`
@@ -48,6 +48,6 @@ AA_Engine recibirá peticiones de autenticación con el formato `{"alias": alias
 Ejemplo: `{"token": 89323}`
 
 ### `AA_Engine - Juego`
-AA_Engine hace uso de 2 topics de Apache Kafka. El primer topic se llama GAME y es donde AA_Engine publicará un objeto JSON que tendrá a su vez otros 3 objetos. El primer objeto "mapa" será un array de 20 arrays de 20 enteros que representa el mapa; el segundo objeto "jugadores" será un objeto cuyas claves serán los alias de los jugadores y cuyos valores el nivel de los jugadores; y el tercer objeto será un array de 4 ciudades.  
-Ejemplo: `{"mapa": [[0, 1, 0, 893493, ...], [0, 123123, 0, 2, ...], ...], "jugadores": {"jugador1": {"nivel": 9, "posicion": [0, 0]}, "jugador2": {"nivel": 10, "posicion": [0, 1]}}, "ciudades": ["ciudad1": 10, "ciudad2": 10, ...]}`  
+AA_Engine hace uso de 2 topics de Apache Kafka. El primer topic se llama GAME y es donde AA_Engine publicará un objeto JSON que tendrá a su vez otros 3 objetos. El primer objeto "mapa" será un array de 20 arrays de 20 enteros que representa el mapa. El segundo objeto "jugadores" será un objeto cuyas claves serán los alias de los jugadores y cuyos valores un objeto que contendrá el nivel de los jugadores y la posición en el tablero. Si la posición de un jugador es [-1, -1] el jugador está muerto. El tercer objeto será un array de 4 ciudades.  
+Ejemplo: `{"mapa": [[0, 1, 0, 893493, ...], [0, 123123, 0, 2, ...], ...], "jugadores": {"jugador1": {"nivel": 9, "posicion": [-1, -1]}, "jugador2": {"nivel": 10, "posicion": [0, 1]}}, "ciudades": ["ciudad1": 10, "ciudad2": 10, ...]}`  
 El segundo topic se llamará PLAYERMOVEMENTS y es donde los jugadores publicaran sus movimientos para que AA_Engine los consuma. Los jugadores publicarán un JSON de este formato: Ejemplo: `{"[token]": movimiento}` donde [token] es la token de cada jugador.
