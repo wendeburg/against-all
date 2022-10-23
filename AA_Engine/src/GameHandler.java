@@ -10,7 +10,7 @@ import org.json.simple.JSONObject;
 
 import Game.Ciudad;
 import Game.Jugador;
-import Game.Mapa;
+import Game.Game;
 import Utils.MessageParser;
 import Utils.MessageParserException;
 
@@ -22,7 +22,7 @@ public class GameHandler extends Thread {
     private final int puertoServidorClima;
     private ArrayList<Ciudad> ciudades;
     private HashMap<String, Jugador> jugadores;
-    private Mapa mapa;
+    private Game partida;
 
     public GameHandler(AuthenticationHandler authThread, String ipBroker, int puertoBroker, String ipServidorCLima, int puertoServidorClima) {
         this.authThread = authThread;
@@ -37,7 +37,7 @@ public class GameHandler extends Thread {
             ciudades.add(new Ciudad());
         }
 
-        this.mapa = new Mapa();
+        this.partida = new Game();
     }
 
     private String leeSocket(Socket socketCliente) throws IOException {
@@ -124,17 +124,22 @@ public class GameHandler extends Thread {
         }
     }
 
+    private void gestionarPartida() {
+        
+    }
+
     @Override
     public void run() {
         obtenerCiudades();
+        partida.setCiudades(ciudades);
 
         try {
             authThread.join();
 
             jugadores = authThread.getJugadores();
-            mapa.addPlayers(jugadores);
+            partida.setJugadores(jugadores);
 
-            System.out.println(mapa.toString());
+            gestionarPartida();
         } catch (InterruptedException e) {
             System.out.println("No se puede esperar al hilo d autenticación porque se ha interrumpido.");
         }
