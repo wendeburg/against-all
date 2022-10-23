@@ -108,23 +108,14 @@ class Player:
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server.connect(self.engine_addr)
         print (f"Establecida conexión en [{self.engine_addr}]")
-        send(json.dumps(entry), server)
-        while server.recv(2048).decode(FORMAT)==ACK:
-            msg_server = server.recv(2048).decode(FORMAT)
-            if not check_lrc(msg_server):
-                print("Ha ocurrido un error en el lrc")
-                break
-            msg_server=unpack(msg_server)
-            print(msg_server)
-            if msg_server=="FIN" or msg_server[:5]=="ERROR":
-                
-                break
-            msg=input()
-            send(msg, server)
-        else:
-            print("Ha ocurrido un error: nack")
+        server.send(packet(json.dumps(entry)))
+        msg_server = server.recv(2048).decode(FORMAT)
+        if not check_lrc(msg_server):
+            print("Ha ocurrido un error en el lrc")
+        msg_server=unpack(msg_server)
+        print(msg_server)
 
-        send(EOT, server)        
+        server.send(packet(EOT))        
         server.close()
 
 
