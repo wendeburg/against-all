@@ -3,6 +3,7 @@ import sys
 import threading
 import pymongo
 import json
+import struct
 
 class bcolors:
     HEADER = '\033[95m'
@@ -28,19 +29,33 @@ EOT = "\x04"
 FORMAT = 'utf-8'
 MAX_CONEXIONES = 2
 
-def packet(msg):
-    lrc = get_lrc(msg.encode(FORMAT))
-    msg = STX + msg + ETX
-    msg = msg.encode(FORMAT) + str(lrc).encode(FORMAT)
+def send(msg, client):
+    if msg != EOT and msg != ACK and msg != NACK:
+        message = pack_msg(msg)
+    else:
+        message = pack_signal(FORMAT)
+    client.send(message)
+
+def pack_signal(msg):
+    msg = struct.pack(">H", len(msg)) + msg.encode(FORMAT)
     return msg
 
-def get_lrc(msg):
+def pack_msg(msg):
+    lrc = get_lrc(msg.encode(FORMAT))
+    msg = STX + msg + ETX
+    msg += str(lrc)
+    msg = struct.pack(">H", len(msg)) + msg.encode(FORMAT)
+    return msg
+
+def get_lrc(message):
+    msg = message[2:]
     lrc = 0
     for b in msg:
         lrc ^= b
     return lrc
 
-def check_lrc(msg):
+def check_lrc(message):
+    msg = message[2:]
     if msg[0] == STX:
         try:
             i = 1
@@ -53,18 +68,13 @@ def check_lrc(msg):
             return True
     return False
 
-def unpack(msg):
+def unpack(message):
+    msg = message[2:]
     i=1
     while msg[i]!=ETX:
         i+=1
     msg=msg[1:i]
     return msg
-
-def ack(conn):
-    conn.send(ACK.encode(FORMAT))
-
-def nack(conn):
-    conn.send(NACK.encode(FORMAT))
 
 def handle_register(conn, addr, op):
     edit_alias=""
@@ -73,7 +83,7 @@ def handle_register(conn, addr, op):
     nivel=""
     ef=""
     ec=""
-    conn.send(packet("Alias:"))
+    send("Alias: ", conn)
     #with open(PLAYERS_DB, mode='r', encoding='utf-8') as feedsjson:
     #    feeds = json.load(feedsjson)
     mongo_client = pymongo.MongoClient("mongodb://localhost:27017/")
@@ -89,53 +99,53 @@ def handle_register(conn, addr, op):
                 connected = False
             else:
                 if msg == ENQ:
-                    ack(conn)
+                    send(ACK, conn)
                 if check_lrc(msg):
                     msg=unpack(msg)
                     print(f" He recibido del cliente [{addr}] el mensaje: {msg}")
-                    ack(conn)
+                    send(ACK, conn)
 
                     if alias=="":
                         if op=="reg":
                             if players.count_documents({"alias": msg}) > 0:
-                                conn.send(packet("ERROR: " + bcolors.FAIL + "Alias duplicado" + bcolors.ENDC))
+                                send("ERROR: " + bcolors.FAIL + "Alias duplicado" + bcolors.ENDC, conn)
                                 break
                             alias=msg
-                            conn.send(packet("Contraseña:"))
+                            send("Contraseña:", conn)
                         else:
                             if players.count_documents({"alias": msg}) == 0:
-                                conn.send(packet("ERROR: " + bcolors.FAIL + "Alias no existe" + bcolors.ENDC))
+                                send("ERROR: " + bcolors.FAIL + "Alias no existe" + bcolors.ENDC, conn)
                                 break
                             edit_alias=msg
-                            conn.send(packet("Nuevo alias:"))
+                            send("Nuevo alias:", conn)
                             op="reg"
                     elif contra=="":
                         contra=msg
-                        conn.send(packet("Nivel:"))
+                        send("Nivel:", conn)
                     elif nivel=="":
                         try:
                             int_msg=int(msg)
                             nivel=msg
                         except:
-                            conn.send(packet("Nivel no válido"))
+                            send("Nivel no válido", conn)
                             break
-                        conn.send(packet("EF:"))
+                        send("EF:", conn)
                     elif ef=="":
                         try:
                             int_msg=int(msg)
                             ef=msg
                         except:
-                            conn.send(packet("EF no válido"))
+                            send("EF no válido", conn)
                             break
-                        conn.send(packet("EC:"))
+                        send("EC:", conn)
                     else:
                         try:
                             int_msg=int(msg)
                             ec=msg
                         except:
-                            conn.send(packet("EC no válido"))
+                            send("EC no válido", conn)
                             break
-                        conn.send(packet("FIN"))
+                        send("FIN", conn)
                         """
                         with open(PLAYERS_DB, mode='w', encoding=FORMAT) as feedsjson:
                             entry={'alias':alias, 'nivel':nivel, 'ef':ef, 'ec':ec}
@@ -149,7 +159,7 @@ def handle_register(conn, addr, op):
                             players.find_one_and_replace({ "alias" : edit_alias }, entry)
                 else:
                     print("Ha ocurrido un error con el mensaje")
-                    nack(conn)
+                    send(NACK, conn)
     return False
     
 
@@ -166,16 +176,16 @@ def handle_client(conn, addr):
                 connected = False
             else:
                 if msg == ENQ:
-                    ack(conn)
+                    send(ACK, conn)
                 if check_lrc(msg):
                     msg=unpack(msg)
                     print(f" He recibido del cliente [{addr}] el mensaje: {msg}")
-                    ack(conn)
+                    send(ACK, conn)
                     connected = handle_register(conn, addr, msg)
                     print("Connection ended")
                 else:
                     print("Ha ocurrido un error con el mensaje")
-                    nack(conn)
+                    send(NACK, conn)
     print("ADIOS. TE ESPERO EN OTRA OCASION")
     conn.close()
 
