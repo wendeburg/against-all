@@ -59,18 +59,17 @@ public class AuthenticationHandler extends Thread {
                 // Esperar a que alguna condiciómn se cumpla para terminar con el hilo.
             }
 
-            System.out.println("He muerto, auththread");
             return;
         } catch (Exception e) {
             System.out.println("El socket no se puedo abrir.");
         }
         finally {
-            System.out.println("Servidor de autenticación cerrado");
+            System.out.println("Servidor de autenticación cerrado.");
             cliente.close();
             try {
                 socketServidor.close();
             } catch (Exception e) {
-                System.out.println("Error al intentar cerrar el socket del servidor de autentiación");
+                System.out.println("Error al intentar cerrar el socket del servidor de autentiación.");
             }
         }
     }
