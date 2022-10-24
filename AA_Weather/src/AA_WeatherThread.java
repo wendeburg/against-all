@@ -1,9 +1,9 @@
 import java.io.*;
 import java.net.*;
-import java.util.Random;
 
 import org.json.simple.*;
 import Utils.MessageParser;
+import Utils.MessageParserException;
 
 public class AA_WeatherThread extends Thread {
     private final Socket socketCliente;
@@ -28,25 +28,15 @@ public class AA_WeatherThread extends Thread {
         dos.writeUTF(mensaje);
     }
 
-    private JSONObject getCiudades(int num) {        
-        Random rand = new Random();
-        JSONObject ciudades = new JSONObject();
+    private JSONObject getCiudad(String nombre) {        
+        JSONObject ciudadJSON = new JSONObject();
 
-        Object[] claves = bd.keySet().toArray();
+        ciudadJSON.put(nombre, bd.get(nombre));
 
-        for (int i = 0; i < num; i++) {
-            int indice = rand.nextInt(bd.size());
-
-            ciudades.put(claves[indice], bd.get(claves[indice]));
-        }
-
-        return ciudades;
+        return ciudadJSON;
     }
 
     private boolean mandarRespuesta(JSONObject ciudades) {
-        int numIntentos = 0;
-        boolean cont = true;
-        String mensaje;
         MessageParser parser = new MessageParser();
 
         StringBuilder sb = new StringBuilder();
@@ -56,6 +46,7 @@ public class AA_WeatherThread extends Thread {
         sb.append(parser.getStringLRC(ciudades.toString()));
 
         try {
+            escribeSocket(Character.toString(MessageParser.ACKChar));
             escribeSocket(sb.toString());
             return true;
         }
@@ -65,16 +56,21 @@ public class AA_WeatherThread extends Thread {
         }
     }
 
-    private boolean gestionarPeticion(JSONObject peticion) {
-        String numCiudadesStr = peticion.get("ciudades").toString();
+    private boolean gestionarPeticion(JSONObject peticion) throws IOException {
+        String nombreCiudad = peticion.get("ciudad").toString();
 
-        if (numCiudadesStr != null) {
+        if (nombreCiudad != null) {
             try {
-                int numeroCiudades = Integer.parseInt(numCiudadesStr);
+                JSONObject ciudadRespuesta= getCiudad(nombreCiudad);
 
-                JSONObject ciudadesRespuesta = getCiudades(numeroCiudades);
-
-                return mandarRespuesta(ciudadesRespuesta);                
+                if (ciudadRespuesta.get(nombreCiudad) != null) {
+                    return mandarRespuesta(ciudadRespuesta); 
+                }
+                else {
+                    escribeSocket(Character.toString(MessageParser.NAKChar));
+                    return false;
+                }
+               
             }
             catch (NumberFormatException e) {
                 try {
@@ -114,13 +110,17 @@ public class AA_WeatherThread extends Thread {
 
                     respuestaEnviada = gestionarPeticion(peticion);
                 }
-            } catch (Exception e) {
+            } catch (MessageParserException e) {
                 try {
                     escribeSocket(Character.toString(MessageParser.NAKChar));
                 } catch (IOException e1) {
                     System.out.println("Error al enviar NAK al cliente con ip: " + dirIPCliente);
                     cont = false;
                 }
+            }
+            catch (IOException e) {
+                System.out.println("Hubo una interrupción en la conexión con el cliente con ip: " + dirIPCliente);
+                cont = false;
             }
         }
     
