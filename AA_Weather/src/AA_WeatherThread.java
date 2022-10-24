@@ -36,7 +36,7 @@ public class AA_WeatherThread extends Thread {
         return ciudadJSON;
     }
 
-    private boolean mandarRespuesta(JSONObject ciudades) {
+    private boolean mandarRespuesta(JSONObject ciudades) throws IOException {
         MessageParser parser = new MessageParser();
 
         StringBuilder sb = new StringBuilder();
@@ -45,15 +45,9 @@ public class AA_WeatherThread extends Thread {
         sb.append(MessageParser.ETXChar);
         sb.append(parser.getStringLRC(ciudades.toString()));
 
-        try {
-            escribeSocket(Character.toString(MessageParser.ACKChar));
-            escribeSocket(sb.toString());
-            return true;
-        }
-        catch (IOException e) {
-            System.out.println("Error al utilizar socket con cliente con ip: " + dirIPCliente);
-            return false;
-        }
+        escribeSocket(Character.toString(MessageParser.ACKChar));
+        escribeSocket(sb.toString());
+        return true;
     }
 
     private boolean gestionarPeticion(JSONObject peticion) throws IOException {
