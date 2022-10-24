@@ -112,6 +112,9 @@ public class AA_WeatherThread extends Thread {
 
                     respuestaEnviada = gestionarPeticion(peticion);
                 }
+                else if (respuestaEnviada && mensaje.equals(Character.toString(MessageParser.ACKChar))) {
+                    respuestaEnviada = false;
+                }
             } catch (MessageParserException e) {
                 try {
                     escribeSocket(Character.toString(MessageParser.NAKChar));
