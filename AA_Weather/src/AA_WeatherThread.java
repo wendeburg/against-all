@@ -77,6 +77,12 @@ public class AA_WeatherThread extends Thread {
             }
         }
 
+        try {
+            escribeSocket(Character.toString(MessageParser.NAKChar));
+        } catch (IOException e1) {
+            System.out.println("Error al enviar NAK al cliente con ip: " + dirIPCliente);
+        }
+
         return false;
     }
 
