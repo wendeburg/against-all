@@ -21,7 +21,7 @@ public class RandomTokenGenerator {
         int numeroAleatorio;
 
         do {
-            numeroAleatorio = rand.nextInt(numeroMinimo, numeroMaximo);
+            numeroAleatorio = rand.nextInt(numeroMaximo);
         } while (tokensUsadas.contains(numeroAleatorio));
 
         tokensUsadas.add(numeroAleatorio);

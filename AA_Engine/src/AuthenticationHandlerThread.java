@@ -39,7 +39,7 @@ public class AuthenticationHandlerThread extends Thread {
         dos.writeUTF(mensaje);
     }
 
-    private boolean mandarRespuesta(JSONObject res) {
+    private boolean mandarRespuesta(JSONObject res) throws IOException {
         MessageParser parser = new MessageParser();
 
         StringBuilder sb = new StringBuilder();
@@ -48,17 +48,12 @@ public class AuthenticationHandlerThread extends Thread {
         sb.append(MessageParser.ETXChar);
         sb.append(parser.getStringLRC(res.toString()));
 
-        try {
-            escribeSocket(sb.toString());
-            return true;
-        }
-        catch (IOException e) {
-            System.out.println("Error al utilizar socket con cliente con ip: " + dirIPCliente);
-            return false;
-        }
+        escribeSocket(Character.toString(MessageParser.ACKChar));
+        escribeSocket(sb.toString());
+        return true;
     }
 
-    private boolean gestionarPeticion(JSONObject peticion) {
+    private boolean gestionarPeticion(JSONObject peticion) throws IOException {
         Document userToAuthenticate = new Document("alias", peticion.get("alias").toString());
         Document user = usuarios.find(userToAuthenticate).first();
 
@@ -81,11 +76,11 @@ public class AuthenticationHandlerThread extends Thread {
 
         try {
             escribeSocket(Character.toString(MessageParser.NAKChar));
-            return false;
         } catch (IOException e) {
             System.out.println("Error al enviar NAK al cliente con ip: " + dirIPCliente);
-            return false;
         }
+
+        return false;
     }
 
     @Override
@@ -114,14 +109,15 @@ public class AuthenticationHandlerThread extends Thread {
 
                     respuestaEnviada = gestionarPeticion(peticion);
                 }
-            } catch (Exception e) {
+                else if (respuestaEnviada && mensaje.equals(Character.toString(MessageParser.ACKChar))) {
+                    respuestaEnviada = false;
+                }
+            } catch (IOException e) {
+                System.out.println("Hubo una interrupción en la conexión con el cliente con ip: " + dirIPCliente);
+                cont = false;
+            } catch (MessageParserException e) {
                 try {
-                    if (!(e instanceof EOFException)) {
-                        escribeSocket(Character.toString(MessageParser.NAKChar));
-                    }
-                    else {
-                        break;
-                    }
+                    escribeSocket(Character.toString(MessageParser.NAKChar));
                 } catch (IOException e1) {
                     System.out.println("Error al enviar NAK al cliente con ip: " + dirIPCliente);
                     cont = false;
