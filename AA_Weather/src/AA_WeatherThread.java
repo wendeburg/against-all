@@ -51,9 +51,11 @@ public class AA_WeatherThread extends Thread {
     }
 
     private boolean gestionarPeticion(JSONObject peticion) throws IOException {
-        String nombreCiudad = peticion.get("ciudad").toString();
+        Object nombreCiudadObj = peticion.get("ciudad");
 
-        if (nombreCiudad != null) {
+        if (nombreCiudadObj != null) {
+            String nombreCiudad = nombreCiudadObj.toString();
+
             try {
                 JSONObject ciudadRespuesta= getCiudad(nombreCiudad);
 
