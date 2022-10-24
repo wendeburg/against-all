@@ -1,10 +1,12 @@
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Scanner;
 
 import org.json.simple.JSONObject;
 
@@ -20,16 +22,18 @@ public class GameHandler extends Thread {
     private final int puertoBroker;
     private final String ipServidorClima;
     private final int puertoServidorClima;
+    private final String archivoCiudades;
     private ArrayList<Ciudad> ciudades;
     private HashMap<String, Jugador> jugadores;
     private Game partida;
 
-    public GameHandler(AuthenticationHandler authThread, String ipBroker, int puertoBroker, String ipServidorCLima, int puertoServidorClima) {
+    public GameHandler(AuthenticationHandler authThread, String ipBroker, int puertoBroker, String ipServidorCLima, int puertoServidorClima, String archivoCiudades) {
         this.authThread = authThread;
         this.ipBroker = ipBroker;
         this.puertoBroker = puertoBroker;
         this.ipServidorClima = ipServidorCLima;
         this.puertoServidorClima = puertoServidorClima;
+        this.archivoCiudades = archivoCiudades;
     
         this.ciudades = new ArrayList<>();
 
@@ -63,64 +67,95 @@ public class GameHandler extends Thread {
         return true;
     }
 
-    public void guardarCiudades(JSONObject respuesta) {
-        ArrayList<String> keysArray = new ArrayList<String>(respuesta.keySet());
-
-        for (int i = 0; i < keysArray.size(); i++) {
-            Ciudad c = ciudades.get(i);
-            c.setNombre(keysArray.get(i));
-            c.setTemperatura(Float.parseFloat(respuesta.get(keysArray.get(i)).toString()));
-        }
+    public void guardarCiudad(String nombreCiudad, JSONObject respuesta, int numeroCiudades) {
+        ciudades.get(numeroCiudades).setNombre(nombreCiudad);
+        ciudades.get(numeroCiudades).setTemperatura(Integer.parseInt(respuesta.get(nombreCiudad).toString()));
     }
 
-    private void obtenerCiudades() {
-        String respuestaStr = "";
-        JSONObject respuestaJSON = null;
-        MessageParser parser = new MessageParser();
-        JSONObject peticion = new JSONObject();
-        peticion.put("ciudades", 4);
-        int intentos = 0;
+    private ArrayList<String> obtenerCiudades() throws FileNotFoundException {
+        ArrayList<String> nombreCiudades = new ArrayList<>();
 
+        File archivo = new File(archivoCiudades);
+        Scanner reader = new Scanner(archivo);
+
+        while (reader.hasNextLine()) {
+            String nombreCiudad = reader.nextLine();
+            nombreCiudades.add(nombreCiudad);
+        }
+        reader.close();
+
+        return nombreCiudades;
+    }
+
+    private void obtenerTemperaturas() throws FileNotFoundException {
+        Socket socketCliente = null;
         try {
-            Socket socketCliente = new Socket(ipServidorClima, puertoServidorClima);
-
-            while (!respuestaStr.equals(Character.toString(MessageParser.ACKChar)) && intentos < 3) {
-                escribeSocket(Character.toString(MessageParser.ENQChar), socketCliente);
-                respuestaStr = leeSocket(socketCliente);
-                intentos++;
+            socketCliente = new Socket(ipServidorClima, puertoServidorClima);
+        } catch (Exception e) {
+            System.out.println("No se pudo conectar al servidor del clima. Usando ciudades por defecto.");
+        }
+        MessageParser parser = new MessageParser();
+        ArrayList<String> nombreCiudades = obtenerCiudades();
+        int temperaturasObtenidas = 0;
+    
+        try {
+            if (socketCliente == null) {
+                return;
             }
 
-            respuestaStr = "";
-            intentos = 0;
+            String respuestaStr = "";
 
-            while (respuestaJSON == null && intentos < 3) {
+            escribeSocket(Character.toString(MessageParser.ENQChar), socketCliente);
+            respuestaStr = leeSocket(socketCliente);
+
+            if (!respuestaStr.equals(Character.toString(MessageParser.ACKChar))) {
+                // Se ha recibido NAK al enviar ENQ. Parar peticiones y jugar con ciudades por defecto.
+                System.out.println("Error en al iniciar la comunicación con el servidor del clima. Usando ciudades por defecto.");
+                return;
+            }
+
+            for (String nombreCiudad : nombreCiudades) {
+                if (temperaturasObtenidas >= 4) {
+                    // Ya se tienen todas las temperaturas necesarias.
+                    break;
+                }
+    
+                JSONObject respuestaJSON = null;
+                JSONObject peticion = new JSONObject();
+                peticion.put("ciudad", nombreCiudad);
+    
                 mandarPeticion(peticion, socketCliente);
-                try {
-                    respuestaJSON = parser.parseMessage(leeSocket(socketCliente));
-
-                    guardarCiudades(respuestaJSON);
-                } catch (MessageParserException e) {
-                    respuestaJSON = null;
-                }
-                finally {
-                    intentos++;
-                }
-            }
-
-            intentos = 0;
-            escribeSocket(Character.toString(MessageParser.ACKChar), socketCliente);
-
-            while (!respuestaStr.equals(Character.toString(MessageParser.EOTChar)) && intentos < 3) {
-                escribeSocket(Character.toString(MessageParser.EOTChar), socketCliente);
                 respuestaStr = leeSocket(socketCliente);
-                intentos++;
+    
+                if (respuestaStr.equals(Character.toString(MessageParser.NAKChar))) {
+                    // La ciudad no existe y no hay temperatura.
+                    continue; 
+                }
+                else if (respuestaStr.equals(Character.toString(MessageParser.ACKChar))) {
+                    try {
+                        respuestaJSON = parser.parseMessage(leeSocket(socketCliente));
+                        guardarCiudad(nombreCiudad, respuestaJSON, temperaturasObtenidas);
+                        temperaturasObtenidas++;
+                        escribeSocket(Character.toString(MessageParser.ACKChar), socketCliente);
+                    } catch (MessageParserException e) {
+                        // Hubo un error al recibir la temperatura de esta ciudad, pasar a la siguiente.
+                        continue;
+                    }
+                }
             }
-            
-            socketCliente.close();
-        } catch (UnknownHostException e) {
-            System.out.println("No se ha encontrado el servidor del clima. Socket no abierto.");
+    
+            escribeSocket(Character.toString(MessageParser.EOTChar), socketCliente);
+            respuestaStr = leeSocket(socketCliente);
+    
+            if (respuestaStr.equals(Character.toString(MessageParser.EOTChar))) {
+                socketCliente.close();
+            }
+
+            if (temperaturasObtenidas < 4) {
+                System.out.println("No se pudieron obtener 4 ciudades. Algunas tendrán valores por defecto.");
+            }
         } catch (IOException e) {
-            System.out.println("No se ha podido usar la conexión con el servidor del clima.");
+            System.out.println("Hubo una interrupción en la conexión con el servidor del clima. Algunas ciudades puede que tengan valores por defecto.");
         }
     }
 
@@ -130,7 +165,11 @@ public class GameHandler extends Thread {
 
     @Override
     public void run() {
-        obtenerCiudades();
+        try {
+            obtenerTemperaturas();
+        } catch (FileNotFoundException e1) {
+            System.out.println("No se ha encontrado el archivo para leer las ciudades. Usando ciudades por defecto.");
+        }
         partida.setCiudades(ciudades);
 
         try {
@@ -141,7 +180,7 @@ public class GameHandler extends Thread {
 
             gestionarPartida();
         } catch (InterruptedException e) {
-            System.out.println("No se puede esperar al hilo d autenticación porque se ha interrumpido.");
+            System.out.println("No se puede esperar al hilo de autenticación porque se ha interrumpido.");
         }
     }
 }

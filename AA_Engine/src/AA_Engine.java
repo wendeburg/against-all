@@ -6,9 +6,9 @@ class AA_Engine {
     private AA_Engine() {}
 
     public static void main(String[] args) {
-        if (args.length < 8) {
+        if (args.length < 9) {
             System.out.println("Error faltan argumentos.");
-            System.out.println("Uso: java -jar AA_Engine.jar puerto max_jugadores ip_sv_clima puerto_sv_clima ip_broker puerto_broker ip_bd puerto_bd");
+            System.out.println("Uso: java -jar AA_Engine.jar puerto max_jugadores ip_sv_clima puerto_sv_clima ip_broker puerto_broker ip_bd puerto_bd archivo_con_ciudades");
 
             System.exit(-1);
         }
@@ -21,6 +21,7 @@ class AA_Engine {
         int puertoBroker;
         String ipDB;
         int puertoDB;
+        String archivoCiudades;
         try {
             puerto = Integer.parseInt(args[0]);
             maxJugadores = Integer.parseInt(args[1]);
@@ -30,11 +31,12 @@ class AA_Engine {
             puertoBroker = Integer.parseInt(args[5]);
             ipDB = args[6];
             puertoDB = Integer.parseInt(args[7]);
+            archivoCiudades = args[8];
 
             AuthenticationHandler authThread = new AuthenticationHandler(puerto, maxJugadores, ipDB, puertoDB);
             authThread.start();
             
-            GameHandler gameThread = new GameHandler(authThread, ipBroker, puertoBroker, ipServidorClima, puertoServidorClima);
+            GameHandler gameThread = new GameHandler(authThread, ipBroker, puertoBroker, ipServidorClima, puertoServidorClima, archivoCiudades);
             gameThread.start();
 
             try {
