@@ -15,7 +15,7 @@ Para la comunicación entre microservicios se utilizarán los siguientes caracte
 En el cuerpo de las peticiones y respuestas, entre los carácteres STX Y ETX se enviarán objetos JSON con la información del mensaje. Y al final de los cada petición o respuesta se enviará un LRC que un número que valida que el mensaje se ha enviado correctamente.
 
 ### `AA_Weather`
-AA_Weather recibirá peticiones con el formato `{"ciudade": x}` donde x será el nombre de la ciudad de la que se queire obtener la temperatura. Y responderá con un mensaje cuyo cuerpo tendrá un objeto JSON donde la clave será el nombre de la ciudad y el valor la temperatura en Cº de esa ciudad.  
+AA_Weather recibirá peticiones con el formato `{"ciudad": x}` donde x será el nombre de la ciudad de la que se queire obtener la temperatura. Y responderá con un mensaje cuyo cuerpo tendrá un objeto JSON donde la clave será el nombre de la ciudad y el valor la temperatura en Cº de esa ciudad.  
 Ejemplo:
 `
 {
