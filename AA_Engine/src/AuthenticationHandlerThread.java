@@ -64,6 +64,8 @@ public class AuthenticationHandlerThread extends Thread {
 
                 Jugador nuevoJugador = new Jugador(Integer.parseInt(user.get("nivel").toString()), tokenGenerada, user.get("alias").toString(), Integer.parseInt(user.get("ef").toString()), Integer.parseInt(user.get("ec").toString()));
 
+                // TODO: Se deberia colocar a los jugadores en el hashmap una vez se recibe el ack
+                // de que han recibido el token.
                 jugadores.put(user.get("alias").toString(), nuevoJugador);
 
                 respuesta.put("token", tokenGenerada);

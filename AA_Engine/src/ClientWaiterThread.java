@@ -3,8 +3,6 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashMap;
 
-import javax.management.RuntimeErrorException;
-
 import org.bson.Document;
 
 import com.mongodb.client.MongoCollection;

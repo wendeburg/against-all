@@ -1,5 +1,8 @@
 package Game;
 
+import org.bson.json.JsonMode;
+import org.json.simple.JSONObject;
+
 public class Ciudad {
     private static int nextID = 1;
     private String nombre;
@@ -33,6 +36,14 @@ public class Ciudad {
 
     public void setTemperatura(float temperatura) {
         this.temperatura = temperatura;
+    }
+
+    public JSONObject toJSONObject() {
+        JSONObject obj = new JSONObject();
+
+        obj.put(nombre, temperatura);
+
+        return obj;
     }
 
     @Override

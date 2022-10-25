@@ -4,6 +4,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
 
+import org.apache.kafka.common.errors.CoordinatorLoadInProgressException;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+
 public class Game {
     private ArrayList<ArrayList<IColocable>> mapa;
     private final int tamanoMapa = 20;
@@ -71,6 +75,7 @@ public class Game {
 
                 if (mapa.get(randomRow).get(randomColumn) instanceof EspacioVacio) {
                     playerSet = true;
+                    jugadores.get(key).setPosicion(new Coordenada(randomRow, randomColumn));
                     mapa.get(randomRow).set(randomColumn, jugadores.get(key));
                 }
             }
@@ -147,7 +152,7 @@ public class Game {
         boolean jugadorMuerto = false;
 
         if (colocableEnNuevaPos instanceof Mina) {
-            jugador.setPosicion(new Coordenada(-1, -1));
+            jugadores.remove(jugador.getAlias());
             mapa.get(nuevaPos.getFila()).set(nuevaPos.getColumna(), new EspacioVacio());
             jugadorMuerto = true;
         }
@@ -171,7 +176,7 @@ public class Game {
             }
             else {
                 // Que pasa en caso de empate?? En este caso gana el jugador que estaba en la posicion de destino.
-                jugador.setPosicion(new Coordenada(-1, -1));
+                jugadores.remove(jugador.getAlias());
                 jugadorMuerto = true;
             }
         }
@@ -185,6 +190,65 @@ public class Game {
         if (jugadorMovido || jugadorMuerto) {
             mapa.get(posAnterior.getFila()).set(posAnterior.getColumna(), new EspacioVacio());
         }
+    }
+
+    public void removePlayerFromMap(Jugador j) {
+        mapa.get(j.getPosicion().getFila()).set(j.getPosicion().getColumna(), new EspacioVacio());
+    }
+
+    private JSONObject getCiudadesAsJSONObject() {
+        JSONObject obj = new JSONObject();
+        
+        for (Ciudad c : ciudades) {
+            obj.put(c.getNombre(), c.getTemperatura());
+        }
+
+        return obj;
+    }
+
+    private JSONObject getPlayersAsJSONObject() {
+        JSONObject obj = new JSONObject();
+
+        for (String alias : jugadores.keySet()) {
+            Jugador j = jugadores.get(alias);
+            JSONObject jugador = new JSONObject();
+
+            jugador.put("nivel", j.getNivel());
+            jugador.put("posicion", j.getPosicion().toJSONArray());
+
+            obj.put(alias, jugador);
+        }
+
+        return obj;
+    }
+
+    private JSONArray getMapAsJSONArray() {
+        JSONArray mapaJSON = new JSONArray();
+
+        for (ArrayList<IColocable> fila : mapa) {
+            JSONArray filaJSON = new JSONArray();
+
+            for (IColocable colocable : fila) {
+                filaJSON.add(colocable.getNumberRepresentation());
+            }
+
+            mapaJSON.add(filaJSON);
+        }
+
+        return mapaJSON;
+    }
+
+    public String toJSONString() {
+        JSONArray mapaJSON = getMapAsJSONArray();
+        JSONObject jugadoresJSON = getPlayersAsJSONObject();
+        JSONObject citiesJSON = getCiudadesAsJSONObject();
+        
+        JSONObject obj = new JSONObject();
+        obj.put("mapa", mapaJSON);
+        obj.put("jugadores", jugadoresJSON);
+        obj.put("ciudades", citiesJSON);
+        
+        return obj.toString();
     }
 
     @Override

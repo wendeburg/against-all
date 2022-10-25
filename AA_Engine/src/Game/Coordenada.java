@@ -1,5 +1,7 @@
 package Game;
 
+import org.json.simple.JSONArray;
+
 public class Coordenada {
     private int fila;
     private int columna;
@@ -23,5 +25,12 @@ public class Coordenada {
 
     public void setColumna(int columna) {
         this.columna = columna;
+    }
+
+    public JSONArray toJSONArray() {
+        JSONArray arr = new JSONArray();
+        arr.add(fila);
+        arr.add(columna);
+        return arr;
     }
 }

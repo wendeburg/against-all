@@ -4,11 +4,25 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.Socket;
+import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Properties;
 import java.util.Scanner;
 
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 import Game.Ciudad;
 import Game.Jugador;
@@ -23,6 +37,8 @@ public class GameHandler extends Thread {
     private final String ipServidorClima;
     private final int puertoServidorClima;
     private final String archivoCiudades;
+    private KafkaConsumer<String, String> playerMovementsConsumer;
+    private KafkaProducer<String, String> mapProducer;
     private ArrayList<Ciudad> ciudades;
     private HashMap<String, Jugador> jugadores;
     private Game partida;
@@ -34,9 +50,8 @@ public class GameHandler extends Thread {
         this.ipServidorClima = ipServidorCLima;
         this.puertoServidorClima = puertoServidorClima;
         this.archivoCiudades = archivoCiudades;
-    
-        this.ciudades = new ArrayList<>();
 
+        this.ciudades = new ArrayList<>();
         for (int i = 0; i < 4; i++) {
             ciudades.add(new Ciudad());
         }
@@ -159,8 +174,111 @@ public class GameHandler extends Thread {
         }
     }
 
+    private void inicializarConsumidorDeMovimientosDeJugadores() {
+        Properties p = new Properties();
+        p.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, ipBroker + ":" + puertoBroker);
+        p.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        p.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        p.setProperty(ConsumerConfig.GROUP_ID_CONFIG, "aaengine-consumer");
+        p.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
+
+        playerMovementsConsumer = new KafkaConsumer<>(p);
+        playerMovementsConsumer.subscribe(Arrays.asList("PLAYERMOVEMENTS"));
+    }
+
+    private void inicializarPRoductorDeMapa() {
+        Properties p = new Properties();
+        p.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, ipBroker + ":" + puertoBroker);
+        p.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        p.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+
+        mapProducer = new KafkaProducer<>(p);
+    }
+
+    private Jugador getPlayer(int token) {
+        for (String alias : jugadores.keySet()) {
+            if (jugadores.get(alias).getToken() == token) {
+                return jugadores.get(alias);
+            }
+        }
+
+        return null;
+    }
+
+    private void initLastMovementsLogger(HashMap<Integer, Long> logger, long tiempoIncial) {
+        for (String alias : jugadores.keySet()) {
+            logger.put(jugadores.get(alias).getToken(), tiempoIncial);
+        }
+    }
+
+    private ArrayList<Jugador> getDisconectedPlayers(HashMap<Integer, Long> lastMovementsLogger) {
+        ArrayList<Jugador> jugadoresDesconectados = new ArrayList<>();
+
+        for (Integer token : lastMovementsLogger.keySet()) {
+            Jugador j = getPlayer(token);
+
+            if (j != null) {
+                long t = System.currentTimeMillis() / 1000;
+
+                // Los jugadores que no hayan hecho un movimiento por más de 10 segundos
+                // se consideran desconectados.
+                if (t - lastMovementsLogger.get(token) > 10) {
+                    jugadoresDesconectados.add(j);
+                }
+            }
+        }
+
+        return jugadoresDesconectados;
+    }
+
+    private void removeDisconnectedPlayers(ArrayList<Jugador> jugadoresDesconectados, HashMap<Integer, Long> lastMovementsLogger) {
+        for (Jugador j : jugadoresDesconectados) {
+            System.out.println("El jugador " + j.getAlias() + " no ha hecho un movimiento por más de 10 segundos. Ha sido removido de la partida.");
+            lastMovementsLogger.remove(j.getToken());
+            jugadores.remove(j.getAlias());
+            partida.removePlayerFromMap(j);
+        }
+    }
+
     private void gestionarPartida() {
-        
+        JSONParser parser = new JSONParser();
+        HashMap<Integer, Long> lastMovementsLogger = new HashMap<>();
+
+        mapProducer.send(new ProducerRecord<String,String>("MAP", partida.toJSONString()));
+
+        long tiempoInicial = System.currentTimeMillis() / 1000;
+        initLastMovementsLogger(lastMovementsLogger, tiempoInicial);
+        // La partida termina en 2 minutos o cuando quede un jugador.
+        while (jugadores.size() > 1 && ((System.currentTimeMillis() / 1000) - tiempoInicial) <= 120) {
+            ConsumerRecords<String, String> movimientos = playerMovementsConsumer.poll(Duration.ofMillis(500));
+            
+            for (ConsumerRecord<String, String> movimiento : movimientos) {
+                try {
+                    JSONObject movimientoJSON = (JSONObject) parser.parse(movimiento.value().toString());
+                    String tokenJugador = new ArrayList<String>(movimientoJSON.keySet()).get(0).toString();
+                    String m = movimientoJSON.get(tokenJugador).toString();
+                    
+                    Jugador j = getPlayer(Integer.parseInt(tokenJugador));
+
+                    if (j == null) {
+                        continue;
+                    }
+
+                    // Si el movimiento no es un Keeapalive realizar movimiento.
+                    if (!m.equals("KA")) {
+                        partida.movePlayer(m, j);
+                    }
+                    
+                    lastMovementsLogger.put(j.getToken(), System.currentTimeMillis() / 1000);
+                } catch (ParseException e) {
+                    continue;
+                }
+            } 
+
+            removeDisconnectedPlayers(getDisconectedPlayers(lastMovementsLogger), lastMovementsLogger);
+            mapProducer.send(new ProducerRecord<String,String>("MAP", partida.toJSONString()));
+            mapProducer.flush();
+        }
     }
 
     @Override
@@ -178,7 +296,14 @@ public class GameHandler extends Thread {
             jugadores = authThread.getJugadores();
             partida.setJugadores(jugadores);
 
+            inicializarConsumidorDeMovimientosDeJugadores();
+            inicializarPRoductorDeMapa();
+            
+            // Imprimir que la partida comenzará ahora.
             gestionarPartida();
+
+            playerMovementsConsumer.close();
+            mapProducer.close();
         } catch (InterruptedException e) {
             System.out.println("No se puede esperar al hilo de autenticación porque se ha interrumpido.");
         }
