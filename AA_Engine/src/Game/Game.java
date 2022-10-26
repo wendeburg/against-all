@@ -82,33 +82,46 @@ public class Game {
         }
     }
 
+    private int obtenerColumnaOFila(int posAnterior, int cambio) {
+        int nuevaPos = posAnterior + cambio;
+
+        if (nuevaPos > 19) {
+            return 0;
+        }
+        else if (nuevaPos < 0) {
+            return 19;
+        }
+        
+        return nuevaPos;
+    }
+
     private Coordenada obtenerNuevaPosicion(String direccion, Coordenada posAnterior) {
         Coordenada nuevaPos = null;
 
         switch (direccion) {
-            case "N":
-                nuevaPos = new Coordenada((posAnterior.getFila() + 1) % 19, posAnterior.getColumna());
-                break;
             case "S":
-                nuevaPos = new Coordenada((posAnterior.getFila() - 1) % 19, posAnterior.getColumna());
+                nuevaPos = new Coordenada(obtenerColumnaOFila(posAnterior.getFila(), 1), posAnterior.getColumna());
                 break;
-            case "E":
-                nuevaPos = new Coordenada(posAnterior.getFila(), (posAnterior.getColumna() - 1) % 19);
+            case "N":
+                nuevaPos = new Coordenada(obtenerColumnaOFila(posAnterior.getFila(), -1), posAnterior.getColumna());
                 break;
             case "W":
-                nuevaPos = new Coordenada(posAnterior.getFila(), (posAnterior.getColumna() + 1) % 19);
+                nuevaPos = new Coordenada(posAnterior.getFila(), obtenerColumnaOFila(posAnterior.getColumna(), -1));
                 break;
-            case "NE":
-                nuevaPos = new Coordenada((posAnterior.getFila() + 1) % 19, (posAnterior.getColumna() - 1) % 19);
-                break;
-            case "NW":
-                nuevaPos = new Coordenada((posAnterior.getFila() + 1) % 19, (posAnterior.getColumna() + 1) % 19);
-                break;
-            case "SE":
-                nuevaPos = new Coordenada((posAnterior.getFila() - 1) % 19, (posAnterior.getColumna() - 1) % 19);
+            case "E":
+                nuevaPos = new Coordenada(posAnterior.getFila(), obtenerColumnaOFila(posAnterior.getColumna(), 1));
                 break;
             case "SW":
-                nuevaPos = new Coordenada((posAnterior.getFila() - 1) %19, (posAnterior.getColumna() + 1) % 19);
+                nuevaPos = new Coordenada(obtenerColumnaOFila(posAnterior.getFila(), 1), obtenerColumnaOFila(posAnterior.getColumna(), -1));
+                break;
+            case "SE":
+                nuevaPos = new Coordenada(obtenerColumnaOFila(posAnterior.getFila(), 1), obtenerColumnaOFila(posAnterior.getColumna(), 1));
+                break;
+            case "NW":
+                nuevaPos = new Coordenada(obtenerColumnaOFila(posAnterior.getFila(), -1), obtenerColumnaOFila(posAnterior.getColumna(), -1));
+                break;
+            case "NE":
+                nuevaPos = new Coordenada(obtenerColumnaOFila(posAnterior.getFila(), -1), obtenerColumnaOFila(posAnterior.getColumna(), 1));
                 break;
         }
 

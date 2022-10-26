@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Properties;
 import java.util.Scanner;
+import java.util.UUID;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -179,8 +180,9 @@ public class GameHandler extends Thread {
         p.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, ipBroker + ":" + puertoBroker);
         p.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         p.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-        p.setProperty(ConsumerConfig.GROUP_ID_CONFIG, "aaengine-consumer");
-        p.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
+        p.setProperty(ConsumerConfig.GROUP_ID_CONFIG, "aaengine-playermovements");
+        p.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        p.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, Boolean.toString(true));
 
         playerMovementsConsumer = new KafkaConsumer<>(p);
         playerMovementsConsumer.subscribe(Arrays.asList("PLAYERMOVEMENTS"));
@@ -222,7 +224,7 @@ public class GameHandler extends Thread {
 
                 // Los jugadores que no hayan hecho un movimiento por más de 10 segundos
                 // se consideran desconectados.
-                if (t - lastMovementsLogger.get(token) > 10) {
+                if (t - lastMovementsLogger.get(token) > 1000000) {
                     jugadoresDesconectados.add(j);
                 }
             }
@@ -250,7 +252,9 @@ public class GameHandler extends Thread {
         initLastMovementsLogger(lastMovementsLogger, tiempoInicial);
         // La partida termina en 2 minutos o cuando quede un jugador.
         while (jugadores.size() > 1 && ((System.currentTimeMillis() / 1000) - tiempoInicial) <= 120) {
-            ConsumerRecords<String, String> movimientos = playerMovementsConsumer.poll(Duration.ofMillis(500));
+            long tickControl = System.currentTimeMillis();
+            
+            ConsumerRecords<String, String> movimientos = playerMovementsConsumer.poll(Duration.ofMillis(100));
             
             for (ConsumerRecord<String, String> movimiento : movimientos) {
                 try {
@@ -270,12 +274,23 @@ public class GameHandler extends Thread {
                     }
                     
                     lastMovementsLogger.put(j.getToken(), System.currentTimeMillis() / 1000);
-                } catch (ParseException e) {
+                } catch (Exception e) {
                     continue;
                 }
             } 
 
             removeDisconnectedPlayers(getDisconectedPlayers(lastMovementsLogger), lastMovementsLogger);
+
+            long timeElapsed = System.currentTimeMillis() - tickControl;
+
+            if (timeElapsed < 500) {
+                try {
+                    sleep(500 - timeElapsed);
+                } catch (InterruptedException e) {
+                    System.out.println("Could not put the GameHandler thread to sleep.");
+                }
+            }
+
             mapProducer.send(new ProducerRecord<String,String>("MAP", partida.toJSONString()));
             mapProducer.flush();
         }
