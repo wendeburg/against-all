@@ -180,8 +180,8 @@ public class GameHandler extends Thread {
         p.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, ipBroker + ":" + puertoBroker);
         p.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         p.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-        p.setProperty(ConsumerConfig.GROUP_ID_CONFIG, "aaengine-playermovements");
-        p.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        p.setProperty(ConsumerConfig.GROUP_ID_CONFIG, "aaengine-" + UUID.randomUUID().toString());
+        p.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
         p.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, Boolean.toString(true));
 
         playerMovementsConsumer = new KafkaConsumer<>(p);
