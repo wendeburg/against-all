@@ -1,3 +1,5 @@
+import java.util.UUID;
+
 class AA_Engine {
     private AA_Engine() {}
 
@@ -28,6 +30,8 @@ class AA_Engine {
             ipDB = args[6];
             puertoDB = Integer.parseInt(args[7]);
             archivoCiudades = args[8];
+
+            String idPartida = UUID.randomUUID().toString();
 
             AuthenticationHandler authThread = new AuthenticationHandler(puerto, maxJugadores, ipDB, puertoDB);
             authThread.start();

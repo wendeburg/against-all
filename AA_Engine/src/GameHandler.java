@@ -23,7 +23,6 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 
 import Game.Ciudad;
 import Game.Jugador;
@@ -43,6 +42,7 @@ public class GameHandler extends Thread {
     private ArrayList<Ciudad> ciudades;
     private HashMap<String, Jugador> jugadores;
     private Game partida;
+    private String idPartida;
 
     public GameHandler(AuthenticationHandler authThread, String ipBroker, int puertoBroker, String ipServidorCLima, int puertoServidorClima, String archivoCiudades) {
         this.authThread = authThread;
@@ -51,6 +51,8 @@ public class GameHandler extends Thread {
         this.ipServidorClima = ipServidorCLima;
         this.puertoServidorClima = puertoServidorClima;
         this.archivoCiudades = archivoCiudades;
+
+        this.idPartida = UUID.randomUUID().toString();
 
         this.ciudades = new ArrayList<>();
         for (int i = 0; i < 4; i++) {
@@ -188,7 +190,7 @@ public class GameHandler extends Thread {
         playerMovementsConsumer.subscribe(Arrays.asList("PLAYERMOVEMENTS"));
     }
 
-    private void inicializarPRoductorDeMapa() {
+    private void inicializarProductorDeMapa() {
         Properties p = new Properties();
         p.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, ipBroker + ":" + puertoBroker);
         p.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
@@ -298,6 +300,9 @@ public class GameHandler extends Thread {
 
     @Override
     public void run() {
+        NPCAuthenticationHandler npcAuthHandler = new NPCAuthenticationHandler(idPartida, ipBroker, puertoBroker, jugadores, authThread.getTokenGenerator(), partida);
+        npcAuthHandler.start();
+
         try {
             obtenerTemperaturas();
         } catch (FileNotFoundException e1) {
@@ -312,11 +317,12 @@ public class GameHandler extends Thread {
             partida.setJugadores(jugadores);
 
             inicializarConsumidorDeMovimientosDeJugadores();
-            inicializarPRoductorDeMapa();
+            inicializarProductorDeMapa();
             
             // Imprimir que la partida comenzará ahora.
             gestionarPartida();
 
+            npcAuthHandler.stopThread();
             playerMovementsConsumer.close();
             mapProducer.close();
         } catch (InterruptedException e) {

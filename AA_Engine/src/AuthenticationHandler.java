@@ -16,15 +16,21 @@ public class AuthenticationHandler extends Thread {
     private final MongoClient cliente;
     private final MongoCollection<Document> coleccionUsuarios;
     private final HashMap<String, Jugador> jugadores;
+    RandomTokenGenerator tokenGenerator;
 
     public AuthenticationHandler(int puerto, int maxJugadores, String ipDB, int puertoDB) {
         this.puerto = puerto;
         this.maxJugadores = maxJugadores;
         this.jugadores = new HashMap<>();
+        this.tokenGenerator = new RandomTokenGenerator();
 
         cliente = MongoClients.create("mongodb://" + ipDB + ":" + puertoDB);
         MongoDatabase db = cliente.getDatabase("against-all-db");
         coleccionUsuarios = db.getCollection("users");
+    }
+
+    public RandomTokenGenerator getTokenGenerator() {
+        return tokenGenerator;
     }
 
     public static class ConsoleInput {
@@ -38,7 +44,6 @@ public class AuthenticationHandler extends Thread {
     @Override
     public void run() {
         ServerSocket socketServidor = null;
-        RandomTokenGenerator tokenGenerator = new RandomTokenGenerator();
         
         try {
             socketServidor = new ServerSocket(puerto);

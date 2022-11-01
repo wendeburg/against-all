@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
 
-import org.apache.kafka.common.errors.CoordinatorLoadInProgressException;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
@@ -153,6 +152,22 @@ public class Game {
             }
             else if (ciudadNueva.getTemperatura() >= 25) {
                 j.modificarNivel(j.getEfectoCalor());
+            }
+        }
+    }
+
+    public void addPlayerToMap(Jugador jugador) {
+        Random rand = new Random();
+        boolean playerSet = false;
+
+        while (!playerSet) {
+            int randomRow = rand.nextInt(tamanoMapa);
+            int randomColumn = rand.nextInt(tamanoMapa);
+
+            if (mapa.get(randomRow).get(randomColumn) instanceof EspacioVacio) {
+                playerSet = true;
+                jugador.setPosicion(new Coordenada(randomRow, randomColumn));
+                mapa.get(randomRow).set(randomColumn, jugador);
             }
         }
     }
