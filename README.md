@@ -47,7 +47,7 @@ AA_Engine recibirá peticiones de autenticación con el formato `{"alias": alias
 Ejemplo: `{"token": 89323}`
 
 ### `AA_Engine - Autenticación de NPCs`
-AA_Engine escuchará por peticiones con el formato `{"type": "request", "npcid": npc-uuid}` donde npc-uuid es el identificador del npc. AA_Engine responderá con una oferta para request `{"npcid": npc-uuid, "token": token, "partida": idpartida}`. En respuesta el npc responderá con `{"type": "offer-accepted", "npcid": npc-uuid, "partida": idpartida}` donde token es la token que acepta.
+AA_Engine escuchará por peticiones con el formato `{"type": "request", "npcid": npc-uuid}` donde npc-uuid es el identificador del npc. AA_Engine responderá con una oferta para request `{"npcid": npc-uuid, "token": token, "partida": idpartida, "nivel": nivel, "ef": efectoFrio, "ec": efectoCalor}`. En respuesta el npc responderá con `{"type": "offer-accepted", "npcid": npc-uuid, "partida": idpartida}` donde token es la token que acepta.
 
 ### `AA_Engine - Juego`
 AA_Engine hace uso de 2 topics de Apache Kafka. El primer topic se llama GAME y es donde AA_Engine publicará un objeto JSON que tendrá a su vez otros 3 objetos. El primer objeto "mapa" será un array de 20 arrays de 20 enteros que representa el mapa. El segundo objeto "jugadores" será un objeto cuyas claves serán los alias de los jugadores y cuyos valores un objeto que contendrá el nivel de los jugadores y la posición en el tablero. Si la posición de un jugador es [-1, -1] el jugador está muerto. El tercer objeto será un array de 4 ciudades.  
