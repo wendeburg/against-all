@@ -46,6 +46,9 @@ KA - Keepalive - Si el jugador no envia ningún movimiento luego de 2 segundos s
 AA_Engine recibirá peticiones de autenticación con el formato `{"alias": aliasJugador, "password": contraseñaJugador}`. Y responderá con un mensaje cuyo cuerpo tendrá un objeto JSON donde se incluirá una "token" que identificará al usuario durante la partida.   
 Ejemplo: `{"token": 89323}`
 
+### `AA_Engine - Autenticación de NPCs`
+AA_Engine escuchará por peticiones con el formato `{"type": "request", "npcid": npc-uuid}` donde npc-uuid es el identificador del npc. AA_Engine responderá con una oferta para request `{"npcid": npc-uuid, "token": token, "partida": idpartida}`. En respuesta el npc responderá con `{"type": "offer-accepted", "npcid": npc-uuid, "partida": idpartida, "token": token, "nivel": nivel, "ef": efectoFrio, "ec": efectoCalor}` donde token es la token que acepta.
+
 ### `AA_Engine - Juego`
 AA_Engine hace uso de 2 topics de Apache Kafka. El primer topic se llama GAME y es donde AA_Engine publicará un objeto JSON que tendrá a su vez otros 3 objetos. El primer objeto "mapa" será un array de 20 arrays de 20 enteros que representa el mapa. El segundo objeto "jugadores" será un objeto cuyas claves serán los alias de los jugadores y cuyos valores un objeto que contendrá el nivel de los jugadores y la posición en el tablero. Si la posición de un jugador es [-1, -1] el jugador está muerto. El tercer objeto será un array de 4 ciudades.  
 Ejemplo: `{"mapa": [[0, 1, 0, 893493, ...], [0, 123123, 0, 2, ...], ...], "jugadores": {"jugador1": {"nivel": 9, "posicion": [-1, -1]}, "jugador2": {"nivel": 10, "posicion": [0, 1]}}, "ciudades": ["ciudad1": 10, "ciudad2": 10, ...]}`  
