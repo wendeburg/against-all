@@ -132,9 +132,11 @@ class Player:
         for message in self._consumer:
             message = message.value
             map = message['mapa']
+            cities = list(message['ciudades'].keys())
             os.system('cls')
             print('Message', message_count, ':')
-            print('-------------------------------------------')
+            print(cities[0],': ',message['ciudades'][cities[0]], '             ',cities[1],': ', message['ciudades'][cities[1]])
+            print('---------------------|---------------------')
             for fila in map:
                 print('|', end = '')
                 for col in fila:
@@ -151,7 +153,8 @@ class Player:
                         case _:
                             print(bcolors.FAIL + 'E' + bcolors.ENDC, end = '')
                 print(' |')
-            print('-------------------------------------------')
+            print('---------------------|---------------------')
+            print(cities[2],': ',message['ciudades'][cities[2]], '             ',cities[3],': ', message['ciudades'][cities[3]])
             self.data.append(message)
             message_count += 1
 
