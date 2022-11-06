@@ -115,7 +115,7 @@ class Player:
         self.producer = kafka.KafkaProducer(bootstrap_servers=self.bootstrap_addr,
                                       value_serializer=lambda x: json.dumps(x).encode('utf-8'))
         self.data = []
-        self._valid_moves = ["W", "A", "S", "D", "w", "a", "s", "d", "Q", "E", "Z", "C", "q", "e", "z", "c"]
+        self._valid_moves = {"W":"N", "A":"W", "S":"S", "D":"E", "w":"N", "a":"W", "s":"S", "d":"E", "Q":"NW", "E":"NE", "Z":"SW", "C":"SE", "q":"NW", "e":"NE", "z":"SW", "c":"SE"}
         self.move=None
     
     def update_every_second(self):
@@ -160,10 +160,9 @@ class Player:
         t.start()
         while True:
             self.move = input()
-            print("input")
-            if self.move in self._valid_moves:
-                print("hey")
-                self.producer.send("PLAYERMOVEMENTS", {self.token: self.move})
+            if self.move in self._valid_moves.keys():
+                m = self._valid_moves[self.move]
+                self.producer.send("PLAYERMOVEMENTS", {self.token: m})
                 self.move = None
     
 
