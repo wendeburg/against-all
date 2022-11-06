@@ -120,7 +120,7 @@ class Player:
         while True:
             if self.move is None:
                 time.sleep(1)
-                self.producer.send("PLAYERMOVEMENTS", value="KA")
+                self.producer.send("PLAYERMOVEMENTS", {self.token: "KA"})
     
     def start_read(self):
         self.receive_message()
@@ -158,9 +158,10 @@ class Player:
         t.start()
         while True:
             self.move = input()
+            print("input")
             if self.move in self._valid_moves:
-                self.move = {self.token: self.move}
-                self.producer.send("PLAYERMOVEMENTS", value=self.move)
+                print("hey")
+                self.producer.send("PLAYERMOVEMENTS", {self.token: self.move})
                 self.move = None
     
 
