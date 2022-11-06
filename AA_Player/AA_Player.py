@@ -6,6 +6,7 @@ import json
 import struct
 import kafka
 import threading
+import uuid
 
 
 class bcolors:
@@ -107,9 +108,10 @@ class Player:
         self.reg_addr = (reg_ip, reg_port)
         self.bootstrap_addr = [bootstrap_ip + ":" + str(bootstrap_port)]
         self._consumer = kafka.KafkaConsumer("MAP",
+                                        auto_offset_reset='latest', enable_auto_commit=True,
                                        bootstrap_servers=self.bootstrap_addr,
                                        value_deserializer=lambda x: json.loads(x.decode('utf-8')),
-                                       group_id='jugador')
+                                       group_id=str(uuid.uuid4()))
         self.producer = kafka.KafkaProducer(bootstrap_servers=self.bootstrap_addr,
                                       value_serializer=lambda x: json.dumps(x).encode('utf-8'))
         self.data = []
