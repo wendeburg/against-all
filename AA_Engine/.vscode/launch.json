@@ -6,10 +6,38 @@
     "configurations": [
         {
             "type": "java",
+            "name": "Launch AA_Engine",
+            "request": "launch",
+            "mainClass": "AA_Engine",
+            "projectName": "AA_Engine_6b90d66e",
+            "args": [
+                "3001",
+                "2",
+                "localhost",
+                "3000",
+                "localhost",
+                "29092",
+                "localhost",
+                "27017",
+                "./nombre_ciudades.txt"
+            ]
+        },
+        {
+            "type": "java",
             "name": "Launch Current File",
             "request": "launch",
             "mainClass": "${file}",
-            "args": ["3001", "2", "localhost", "3000", "localhost", "29092", "localhost", "27017", "./nombre_ciudades.txt"]
+            "args": [
+                "3001",
+                "2",
+                "localhost",
+                "3000",
+                "localhost",
+                "29092",
+                "localhost",
+                "27017",
+                "./nombre_ciudades.txt"
+            ]
         },
         {
             "type": "java",

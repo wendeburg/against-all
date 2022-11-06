@@ -17,7 +17,7 @@ class bcolors:
     UNDERLINE = '\033[4m'
 
 SERVER = socket.gethostbyname(socket.gethostname())
-PLAYERS_DB="./AA_Registry/PLAYERS.json"
+#PLAYERS_DB="./AA_Registry/PLAYERS.json"
 
 HEADER = 64
 ENQ = "\x05"
@@ -29,6 +29,7 @@ EOT = "\x04"
 FORMAT = 'utf-8'
 MAX_CONEXIONES = 2
 
+
 def send(msg, client):
     if msg != EOT and msg != ACK and msg != NACK:
         message = pack_msg(msg)
@@ -39,6 +40,7 @@ def send(msg, client):
 def pack_signal(msg):
     msg = struct.pack(">H", len(msg)) + msg.encode(FORMAT)
     return msg
+
 
 def pack_msg(msg):
     lrc = get_lrc(msg.encode(FORMAT))
@@ -74,6 +76,7 @@ def unpack(message):
         i+=1
     msg=msg[1:i]
     return msg
+
 
 def handle_register(conn, addr, op):
     edit_alias=""

@@ -6,6 +6,14 @@
     "configurations": [
         {
             "type": "java",
+            "name": "Launch AA_Weather",
+            "request": "launch",
+            "mainClass": "AA_Weather",
+            "args": "3000",
+            "projectName": "AA_Weather_af0ee148"
+        },
+        {
+            "type": "java",
             "name": "Launch Current File",
             "request": "launch",
             "mainClass": "${file}",
