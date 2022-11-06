@@ -106,7 +106,7 @@ class Player:
         self.engine_addr = (engine_ip, engine_port)
         self.reg_addr = (reg_ip, reg_port)
         self.bootstrap_addr = [bootstrap_ip + ":" + str(bootstrap_port)]
-        self._consumer = kafka.KafkaConsumer("GAME",
+        self._consumer = kafka.KafkaConsumer("MAP",
                                        bootstrap_servers=self.bootstrap_addr,
                                        value_deserializer=lambda x: json.loads(x.decode('utf-8')),
                                        group_id='jugador')
@@ -120,18 +120,36 @@ class Player:
         while True:
             if self.move is None:
                 time.sleep(1)
-                print("update")
                 self.producer.send("PLAYERMOVEMENTS", value="KA")
     
     def start_read(self):
         self.receive_message()
 
     def receive_message(self):
-        self._consumer.subscribe(topics='MAP')
         message_count = 0
         for message in self._consumer:
             message = message.value
-            print(f'Message {message_count}: {message}')
+            map = message['mapa']
+            os.system('cls')
+            print('Message', message_count, ':')
+            print('-------------------------------------------')
+            for fila in map:
+                print('|', end = '')
+                for col in fila:
+                    print(' ', end = '')
+                    match col:
+                        case 0:
+                            print(' ', end = '')
+                        case 1:
+                            print(bcolors.OKGREEN + 'A' + bcolors.ENDC, end = '')
+                        case 2:
+                            print(bcolors.WARNING + 'M' + bcolors.ENDC, end = '')
+                        case self.token:
+                            print(bcolors.OKBLUE + 'P' + bcolors.ENDC, end = '')
+                        case _:
+                            print(bcolors.FAIL + 'E' + bcolors.ENDC, end = '')
+                print(' |')
+            print('-------------------------------------------')
             self.data.append(message)
             message_count += 1
 
