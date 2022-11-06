@@ -99,6 +99,8 @@ def unpack(message):
     msg=msg[1:i]
     return msg
 
+
+
 class Player:
     def __init__(self, reg_ip, reg_port, engine_ip, engine_port, bootstrap_ip, bootstrap_port):
         self.engine_addr = (engine_ip, engine_port)
@@ -112,11 +114,20 @@ class Player:
                                       value_serializer=lambda x: json.dumps(x).encode('utf-8'))
         self.data = []
         self._valid_moves = ["W", "A", "S", "D", "w", "a", "s", "d", "Q", "E", "Z", "C", "q", "e", "z", "c"]
+        self.move=None
+    
+    def update_every_second(self):
+        while True:
+            if self.move is None:
+                time.sleep(1)
+                print("update")
+                self.producer.send("PLAYERMOVEMENTS", value="KA")
     
     def start_read(self):
         self.receive_message()
 
     def receive_message(self):
+        self._consumer.subscribe(topics='MAP')
         message_count = 0
         for message in self._consumer:
             message = message.value
@@ -125,11 +136,14 @@ class Player:
             message_count += 1
 
     def start_write(self):
+        t = threading.Thread(target=self.update_every_second)
+        t.start()
         while True:
-            move = input()
-            if move in self._valid_moves:
-                move = {self.token: move}
-                self.producer.send("PLAYERMOVEMENTS", value=move)
+            self.move = input()
+            if self.move in self._valid_moves:
+                self.move = {self.token: self.move}
+                self.producer.send("PLAYERMOVEMENTS", value=self.move)
+                self.move = None
     
 
     def register(self, operation):
@@ -173,6 +187,8 @@ class Player:
             send(EOT, server)        
             server.close()
             return None
+        if msg_server[2:]==ACK:
+            msg_server = server.recv(2048).decode(FORMAT)
         if not check_lrc(msg_server):
             print("Ha ocurrido un error en el lrc")
             send(EOT, server)        

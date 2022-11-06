@@ -16,7 +16,7 @@
                 "localhost",
                 "3000",
                 "localhost",
-                "29092",
+                "9092",
                 "localhost",
                 "27017",
                 "./nombre_ciudades.txt"
@@ -33,7 +33,7 @@
                 "localhost",
                 "3000",
                 "localhost",
-                "29092",
+                "9092",
                 "localhost",
                 "27017",
                 "./nombre_ciudades.txt"
