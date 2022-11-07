@@ -245,7 +245,7 @@ if (len(sys.argv) == 4):
     PORT = int(sys.argv[1])
     ADDR = (SERVER, PORT)
     IP_BD = sys.argv[2]
-    PORT_BD = int(sys.argv[3])
+    PORT_BD = sys.argv[3]
 
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind(ADDR)
