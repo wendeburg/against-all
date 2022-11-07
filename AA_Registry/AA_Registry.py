@@ -88,7 +88,7 @@ def handle_register(conn, addr, op):
     send("Alias: ", conn)
     #with open(PLAYERS_DB, mode='r', encoding='utf-8') as feedsjson:
     #    feeds = json.load(feedsjson)
-    mongo_client = pymongo.MongoClient("mongodb://localhost:27017/")
+    mongo_client = pymongo.MongoClient("mongodb://"+IP_BD+":"+PORT_BD+"/")
     db = mongo_client["against-all-db"]
     players = db["users"]
     connected = True
@@ -241,13 +241,15 @@ for x in customers.find():
     print(x)
 """
 
-if (len(sys.argv) == 2):
+if (len(sys.argv) == 4):
     PORT = int(sys.argv[1])
-    ADDR = (SERVER, PORT)  
+    ADDR = (SERVER, PORT)
+    IP_BD = sys.argv[2]
+    PORT_BD = int(sys.argv[3])
 
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind(ADDR)
 
     start()
 else:
-    print ("Oops!. Something went bad. I need following args: <Puerto>")
+    print ("Oops!. Something went bad. I need following args: <Puerto> <ip_bd> <puerto_bd>")

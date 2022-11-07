@@ -137,6 +137,7 @@ class Player:
             print('Message', message_count, ':')
             print(cities[0],': ',message['ciudades'][cities[0]], '             ',cities[1],': ', message['ciudades'][cities[1]])
             print('---------------------|---------------------')
+            count = 0
             for fila in map:
                 print('|', end = '')
                 for col in fila:
@@ -152,7 +153,11 @@ class Player:
                             print(bcolors.OKBLUE + 'P' + bcolors.ENDC, end = '')
                         case _:
                             print(bcolors.FAIL + 'E' + bcolors.ENDC, end = '')
-                print(' |')
+                count+=1
+                if count==10:
+                    print(' -')
+                else:
+                    print(' |')
             print('---------------------|---------------------')
             print(cities[2],': ',message['ciudades'][cities[2]], '             ',cities[3],': ', message['ciudades'][cities[3]])
             self.data.append(message)
