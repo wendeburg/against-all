@@ -133,6 +133,7 @@ public class NPCAuthenticationHandler extends Thread {
                             int tokenNPC = Integer.parseInt(peticionJSON.get("token").toString());
                             
                             Jugador npc = new Jugador(nivelNPC, tokenNPC, idNPC, efNPC, ecNPC);
+                            npc.setAsNPC();
 
                             jugadores.put(idNPC, npc);
                             partida.addPlayerToMap(npc);

@@ -8,10 +8,10 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 public class Game {
-    private ArrayList<ArrayList<IColocable>> mapa;
+    private ArrayList<ArrayList<Celda>> mapa;
     private final int tamanoMapa = 20;
-    private final int porcentajeMinas = 20;
-    private final int porcentajeAlimentos = 19;
+    private final int porcentajeMinas = 10;
+    private final int porcentajeAlimentos = 15;
     private HashMap<String, Jugador> jugadores;
     private ArrayList<Ciudad> ciudades;
 
@@ -23,10 +23,10 @@ public class Game {
         mapa = new ArrayList<>();
 
         for (int i = 0; i < tamanoMapa; i++) {
-            ArrayList<IColocable> arr = new ArrayList<>();
+            ArrayList<Celda> arr = new ArrayList<>();
 
             for (int j = 0; j < 20; j++) {
-                arr.add(new EspacioVacio());
+                arr.add(new Celda(new EspacioVacio()));
             }
 
             mapa.add(arr);
@@ -38,16 +38,18 @@ public class Game {
     private void generateMinesAndFood() {
         Random rand = new Random();
 
-        for (ArrayList<IColocable> fila : mapa) {
+        for (ArrayList<Celda> fila : mapa) {
             for (int j = 0; j < fila.size(); j++) {
                 int alimento = rand.nextInt(100);
                 int mina = rand.nextInt(100);
 
                 if (mina < porcentajeMinas) {
-                    fila.set(j, new Mina());
+                    fila.get(j).removeElementAt(0);
+                    fila.get(j).addColocalble(new Mina());
                 }
                 else if (alimento < porcentajeAlimentos) {
-                    fila.set(j, new Alimento());
+                    fila.get(j).removeElementAt(0);
+                    fila.get(j).addColocalble(new Alimento());
                 }
             }
         }
@@ -72,10 +74,11 @@ public class Game {
                 int randomRow = rand.nextInt(tamanoMapa);
                 int randomColumn = rand.nextInt(tamanoMapa);
 
-                if (mapa.get(randomRow).get(randomColumn) instanceof EspacioVacio) {
+                if (mapa.get(randomRow).get(randomColumn).getElementAt(0) instanceof EspacioVacio) {
                     playerSet = true;
                     jugadores.get(key).setPosicion(new Coordenada(randomRow, randomColumn));
-                    mapa.get(randomRow).set(randomColumn, jugadores.get(key));
+                    mapa.get(randomRow).get(randomColumn).removeElementAt(0);
+                    mapa.get(randomRow).get(randomColumn).addColocalble(jugadores.get(key));
                 }
             }
         }
@@ -164,10 +167,11 @@ public class Game {
             int randomRow = rand.nextInt(tamanoMapa);
             int randomColumn = rand.nextInt(tamanoMapa);
 
-            if (mapa.get(randomRow).get(randomColumn) instanceof EspacioVacio) {
+            if (mapa.get(randomRow).get(randomColumn).getElementAt(0) instanceof EspacioVacio) {
                 playerSet = true;
                 jugador.setPosicion(new Coordenada(randomRow, randomColumn));
-                mapa.get(randomRow).set(randomColumn, jugador);
+                mapa.get(randomRow).get(randomColumn).removeElementAt(0);
+                mapa.get(randomRow).get(randomColumn).addColocalble(jugador);
             }
         }
     }
@@ -175,53 +179,126 @@ public class Game {
     public void movePlayer(String direccion, Jugador jugador) {
         Coordenada posAnterior = jugador.getPosicion();
         Coordenada nuevaPos = obtenerNuevaPosicion(direccion, posAnterior);
-        IColocable colocableEnNuevaPos = mapa.get(nuevaPos.getFila()).get(nuevaPos.getColumna());
+        Celda colocablesEnNuevaPos = mapa.get(nuevaPos.getFila()).get(nuevaPos.getColumna());
         boolean jugadorMovido = false;
         boolean jugadorMuerto = false;
 
-        if (colocableEnNuevaPos instanceof Mina) {
-            jugadores.remove(jugador.getAlias());
-            mapa.get(nuevaPos.getFila()).set(nuevaPos.getColumna(), new EspacioVacio());
-            jugadorMuerto = true;
-        }
-        else if (colocableEnNuevaPos instanceof Alimento) {
-            jugador.addOneLevel();
-            mapa.get(nuevaPos.getFila()).set(nuevaPos.getColumna(), jugador);
-            jugador.setPosicion(nuevaPos);
-            computarEfectosDeTemperatura(jugador, posAnterior, nuevaPos);
-            jugadorMovido = true;
-        }
-        else if (colocableEnNuevaPos instanceof Jugador) {
-            Jugador adversario = (Jugador) colocableEnNuevaPos;
-            // Se asume que se debe primero aplicar los efectos del clima sobre el jugador que se mueve antes de la lucha.
-            computarEfectosDeTemperatura(jugador, posAnterior, nuevaPos);
+        for (int i = 0; i < colocablesEnNuevaPos.getColocables().size() && !jugadorMovido && !jugadorMuerto; i++) {
+            IColocable c = colocablesEnNuevaPos.getColocables().get(i);
 
-            if (adversario.getNivel() < jugador.getNivel()) {
-                adversario.setPosicion(new Coordenada(-1, -1));
-                jugador.setPosicion(nuevaPos);
-                mapa.get(nuevaPos.getFila()).set(nuevaPos.getColumna(), jugador);
-                jugadorMovido = true;
-            }
-            else {
-                // Que pasa en caso de empate?? En este caso gana el jugador que estaba en la posicion de destino.
+            if (c instanceof Mina) {
+                if (jugador.getIsNPC()) {
+                    continue;
+                }
+
                 jugadores.remove(jugador.getAlias());
+
+                if (colocablesEnNuevaPos.getColocables().size() == 1) {
+                    mapa.get(nuevaPos.getFila()).get(nuevaPos.getColumna()).removeElementAt(i);
+                    mapa.get(nuevaPos.getFila()).get(nuevaPos.getColumna()).addColocalble(new EspacioVacio());
+                }
+                else {
+                    mapa.get(nuevaPos.getFila()).get(nuevaPos.getColumna()).removeElementAt(i);
+                }
+
                 jugadorMuerto = true;
             }
-        }
-        else {
-            mapa.get(nuevaPos.getFila()).set(nuevaPos.getColumna(), jugador);
-            jugador.setPosicion(nuevaPos);
-            computarEfectosDeTemperatura(jugador, posAnterior, nuevaPos);
-            jugadorMovido = true;
-        }
+            else if (c instanceof Alimento) {
+                if (jugador.getIsNPC()) {
+                    continue;
+                }
 
-        if (jugadorMovido || jugadorMuerto) {
-            mapa.get(posAnterior.getFila()).set(posAnterior.getColumna(), new EspacioVacio());
+                jugador.addOneLevel();
+
+                if (colocablesEnNuevaPos.getColocables().size() == 1) {
+                    mapa.get(nuevaPos.getFila()).get(nuevaPos.getColumna()).removeElementAt(i);
+                    mapa.get(nuevaPos.getFila()).get(nuevaPos.getColumna()).addColocalble(jugador);
+                    jugador.setPosicion(nuevaPos);
+                    computarEfectosDeTemperatura(jugador, posAnterior, nuevaPos);
+                    jugadorMovido = true;
+                }
+                else {
+                    mapa.get(nuevaPos.getFila()).get(nuevaPos.getColumna()).removeElementAt(i);
+                }
+            }
+            else if (c instanceof Jugador) {
+                Jugador adversario = (Jugador) c;
+                // Se asume que se debe primero aplicar los efectos del clima sobre el jugador que se mueve antes de la lucha.
+                
+                if (!jugador.getIsNPC()) {
+                    computarEfectosDeTemperatura(jugador, posAnterior, nuevaPos);
+                }
+    
+                if (adversario.getNivel() < jugador.getNivel()) {
+                    adversario.setPosicion(new Coordenada(-1, -1));
+                    jugadores.remove(adversario.getAlias());
+
+                    if (colocablesEnNuevaPos.getColocables().size() > 1) {
+                        continue;
+                    }
+
+                    jugador.setPosicion(nuevaPos);
+                    mapa.get(nuevaPos.getFila()).get(nuevaPos.getColumna()).removeElementAt(i);
+                    mapa.get(nuevaPos.getFila()).get(nuevaPos.getColumna()).addColocalble(jugador);
+                    jugadorMovido = true;
+                }
+                else if (adversario.getNivel() > jugador.getNivel()) {
+                    jugadores.remove(jugador.getAlias());
+                    jugador.setPosicion(new Coordenada(-1, -1));
+                    
+                    jugadorMuerto = true;
+                }
+            }
+            else {
+                if (i != (colocablesEnNuevaPos.getColocables().size()-1)) {
+                    mapa.get(nuevaPos.getFila()).get(nuevaPos.getColumna()).removeElementAt(i);
+                }
+
+                removeEmptySpace(colocablesEnNuevaPos);
+                mapa.get(nuevaPos.getFila()).get(nuevaPos.getColumna()).addColocalble(jugador);
+                jugador.setPosicion(nuevaPos);
+
+                if (!jugador.getIsNPC()) {
+                    computarEfectosDeTemperatura(jugador, posAnterior, nuevaPos);
+                }                
+                
+                jugadorMovido = true;
+            }
+    
+            if (jugadorMovido || jugadorMuerto) {
+                removePlayerFromPosition(jugador, posAnterior);
+                mapa.get(posAnterior.getFila()).get(posAnterior.getColumna()).addColocalble(new EspacioVacio());
+            }   
+        }
+    }
+
+    private void removeEmptySpace(Celda celda) {
+        for (int i = 0; i < celda.getColocables().size(); i++) {
+            IColocable c = celda.getColocables().get(i);
+            
+            if (c instanceof EspacioVacio) {
+                celda.removeElementAt(i);
+                break;
+            }
+        }
+    }
+
+    private void removePlayerFromPosition(Jugador j, Coordenada coord) {
+        ArrayList<IColocable> colocables = mapa.get(coord.getFila()).get(coord.getColumna()).getColocables();
+
+        for (int i = 0; i < colocables.size(); i++) {
+            IColocable c = colocables.get(i);
+
+            if (c instanceof Jugador) {
+                if (j.equals(c)) {
+                    mapa.get(coord.getFila()).get(coord.getColumna()).removeElementAt(i);
+                }
+            }
         }
     }
 
     public void removePlayerFromMap(Jugador j) {
-        mapa.get(j.getPosicion().getFila()).set(j.getPosicion().getColumna(), new EspacioVacio());
+        removePlayerFromPosition(j, j.getPosicion());
     }
 
     private JSONObject getCiudadesAsJSONObject() {
@@ -253,11 +330,11 @@ public class Game {
     private JSONArray getMapAsJSONArray() {
         JSONArray mapaJSON = new JSONArray();
 
-        for (ArrayList<IColocable> fila : mapa) {
+        for (ArrayList<Celda> fila : mapa) {
             JSONArray filaJSON = new JSONArray();
 
-            for (IColocable colocable : fila) {
-                filaJSON.add(colocable.getNumberRepresentation());
+            for (Celda c : fila) {
+                filaJSON.add(c.toJSONArray());
             }
 
             mapaJSON.add(filaJSON);
@@ -277,21 +354,5 @@ public class Game {
         obj.put("ciudades", citiesJSON);
         
         return obj.toString();
-    }
-
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder();
-
-        for (ArrayList<IColocable> fila : mapa) {
-            for (int j = 0; j < fila.size(); j++) {
-                sb.append(fila.get(j).getNumberRepresentation());
-                sb.append(" ");
-            }
-
-            sb.append("\n");
-        }
-        
-        return sb.toString();
     }
 }

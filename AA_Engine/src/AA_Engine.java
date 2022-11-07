@@ -31,8 +31,6 @@ class AA_Engine {
             puertoDB = Integer.parseInt(args[7]);
             archivoCiudades = args[8];
 
-            String idPartida = UUID.randomUUID().toString();
-
             AuthenticationHandler authThread = new AuthenticationHandler(puerto, maxJugadores, ipDB, puertoDB);
             authThread.start();
             

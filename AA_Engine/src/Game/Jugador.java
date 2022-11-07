@@ -7,6 +7,7 @@ public class Jugador implements IColocable {
     private int efectoFrio;
     private int efectoCalor;
     private Coordenada posicion;
+    private boolean isNPC;
 
     public Jugador(int nivel, int token, String alias, int efectoFrio, int efectoCalor) {
         this.nivel = nivel;
@@ -14,6 +15,15 @@ public class Jugador implements IColocable {
         this.alias = alias;
         this.efectoFrio = efectoFrio;
         this.efectoCalor = efectoCalor;
+        this.isNPC = false;
+    }
+
+    public void setAsNPC() {
+        this.isNPC = true;
+    }
+
+    public boolean getIsNPC() {
+        return this.isNPC;
     }
 
     public int getNivel() {
@@ -59,5 +69,21 @@ public class Jugador implements IColocable {
     @Override
     public int getNumberRepresentation() {
         return this.token;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        // self check
+        if (this == o)
+            return true;
+        // null check
+        if (o == null)
+            return false;
+        // type check and cast
+        if (getClass() != o.getClass())
+            return false;
+        Jugador otroJugador = (Jugador) o;
+        // field comparison
+        return this.token == otroJugador.getToken();
     }
 }
