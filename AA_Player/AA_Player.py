@@ -133,7 +133,7 @@ class Player:
             message = message.value
             map = message['mapa']
             cities = list(message['ciudades'].keys())
-            os.system('cls')
+            os.system("cls")
             print('Message', message_count, ':')
             print(cities[0],': ',message['ciudades'][cities[0]], '             ',cities[1],': ', message['ciudades'][cities[1]])
             print('---------------------|---------------------')
@@ -141,18 +141,19 @@ class Player:
             for fila in map:
                 print('|', end = '')
                 for col in fila:
-                    print(' ', end = '')
-                    match col:
-                        case 0:
-                            print(' ', end = '')
-                        case 1:
-                            print(bcolors.OKGREEN + 'A' + bcolors.ENDC, end = '')
-                        case 2:
-                            print(bcolors.WARNING + 'M' + bcolors.ENDC, end = '')
-                        case self.token:
-                            print(bcolors.OKBLUE + 'P' + bcolors.ENDC, end = '')
-                        case _:
-                            print(bcolors.FAIL + 'E' + bcolors.ENDC, end = '')
+                    for elem in col:
+                        print(' ', end = '')
+                        match elem:
+                            case 0:
+                                print(' ', end = '')
+                            case 1:
+                                print(bcolors.OKGREEN + 'A' + bcolors.ENDC, end = '')
+                            case 2:
+                                print(bcolors.WARNING + 'M' + bcolors.ENDC, end = '')
+                            case self.token:
+                                print(bcolors.OKBLUE + 'P' + bcolors.ENDC, end = '')
+                            case _:
+                                print(bcolors.FAIL + 'E' + bcolors.ENDC, end = '')
                 count+=1
                 if count==10:
                     print(' -')
