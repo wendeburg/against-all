@@ -18,7 +18,7 @@
                 "localhost",
                 "29092",
                 "localhost",
-                "27017",
+                "27777",
                 "./nombre_ciudades.txt"
             ]
         }

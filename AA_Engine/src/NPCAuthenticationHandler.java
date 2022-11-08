@@ -140,6 +140,7 @@ public class NPCAuthenticationHandler extends Thread {
                         }
                     }
                 } catch (Exception e) {
+                    System.out.println(e.toString());
                     continue;
                 }
             } 

@@ -111,7 +111,7 @@ class Player:
                                         auto_offset_reset='latest', enable_auto_commit=True,
                                        bootstrap_servers=self.bootstrap_addr,
                                        value_deserializer=lambda x: json.loads(x.decode('utf-8')),
-                                       group_id=str(uuid.uuid4()))
+                                       group_id=str(uuid.uuid4()), consumer_timeout_ms=20000)
         self.producer = kafka.KafkaProducer(bootstrap_servers=self.bootstrap_addr,
                                       value_serializer=lambda x: json.dumps(x).encode('utf-8'))
         self.data = []
@@ -128,41 +128,48 @@ class Player:
         self.receive_message()
 
     def receive_message(self):
-        message_count = 0
-        for message in self._consumer:
-            message = message.value
-            map = message['mapa']
-            cities = list(message['ciudades'].keys())
-            os.system("cls")
-            print('Message', message_count, ':')
-            print(cities[0],': ',message['ciudades'][cities[0]], '             ',cities[1],': ', message['ciudades'][cities[1]])
-            print('---------------------|---------------------')
-            count = 0
-            for fila in map:
-                print('|', end = '')
-                for col in fila:
-                    for elem in col:
-                        print(' ', end = '')
-                        match elem:
-                            case 0:
-                                print(' ', end = '')
-                            case 1:
-                                print(bcolors.OKGREEN + 'A' + bcolors.ENDC, end = '')
-                            case 2:
-                                print(bcolors.WARNING + 'M' + bcolors.ENDC, end = '')
-                            case self.token:
-                                print(bcolors.OKBLUE + 'P' + bcolors.ENDC, end = '')
-                            case _:
-                                print(bcolors.FAIL + 'E' + bcolors.ENDC, end = '')
-                count+=1
-                if count==10:
-                    print(' -')
-                else:
-                    print(' |')
-            print('---------------------|---------------------')
-            print(cities[2],': ',message['ciudades'][cities[2]], '             ',cities[3],': ', message['ciudades'][cities[3]])
-            self.data.append(message)
-            message_count += 1
+        try:
+            message_count = 0
+            for message in self._consumer:
+                message = message.value
+                map = message['mapa']
+                cities = list(message['ciudades'].keys())
+                os.system("cls")
+                print('Message', message_count, ':')
+                string_mapa=""
+                string_mapa+=(cities[0]+': '+str(message['ciudades'][cities[0]])+ '             '+cities[1]+': '+ str(message['ciudades'][cities[1]])+"\n")
+                string_mapa+=('---------------------|---------------------'+"\n")
+                count = 0
+                for fila in map:
+                    string_mapa+=('|')
+                    for elem in fila:
+                        string_mapa+=(' ')
+                        if len(elem) > 1:
+                            string_mapa+=(bcolors.FAIL + 'E' + bcolors.ENDC)
+                        else:
+                            match elem[0]:
+                                case 0:
+                                    string_mapa+=(' ')
+                                case 1:
+                                    string_mapa+=(bcolors.OKGREEN + 'A' + bcolors.ENDC)
+                                case 2:
+                                    string_mapa+=(bcolors.WARNING + 'M' + bcolors.ENDC)
+                                case self.token:
+                                    string_mapa+=(bcolors.OKBLUE + 'P' + bcolors.ENDC)
+                                case _:
+                                    string_mapa+=(bcolors.FAIL + 'E' + bcolors.ENDC)
+                    count+=1
+                    if count==10:
+                        string_mapa+=(' -'+"\n")
+                    else:
+                        string_mapa+=(' |'+"\n")
+                string_mapa+=('---------------------|---------------------'+"\n")
+                string_mapa+=(cities[2]+': '+str(message['ciudades'][cities[2]])+ '             '+cities[3]+': '+ str(message['ciudades'][cities[3]])+"\n")
+                print(string_mapa)
+                self.data.append(message)
+                message_count += 1
+        except Exception as exc:
+            print("Ha ocurrido un error con el servidor:", exc)
 
     def start_write(self):
         t = threading.Thread(target=self.update_every_second)
@@ -201,43 +208,52 @@ class Player:
         server.close()
 
     def join_game(self):
-        print("Alias: ")
-        alias = input()
-        print("Contra: ")
-        contra= input()
-        entry = {"alias" : alias, "password": contra}
-        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        server.connect(self.engine_addr)
-        print (f"Establecida conexión en [{self.engine_addr}]")
-        send(json.dumps(entry), server)
-        msg_server = server.recv(2048).decode(FORMAT)
-        if msg_server[2:]==NACK:
-            print("NACK")
-            send(EOT, server)        
-            server.close()
-            return None
-        if msg_server[2:]==ACK:
+        try:
+            print("Alias: ")
+            alias = input()
+            print("Contra: ")
+            contra= input()
+            entry = {"alias" : alias, "password": contra}
+            server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            try:
+                server.connect(self.engine_addr)
+            except socket.error as exc:
+                print("Caught exception socket.error : %s" %exc)
+            print (f"Establecida conexión en [{self.engine_addr}]")
+            send(json.dumps(entry), server)
             msg_server = server.recv(2048).decode(FORMAT)
-        if not check_lrc(msg_server):
-            print("Ha ocurrido un error en el lrc")
+            if msg_server[2:]==NACK:
+                print("NACK")
+                send(EOT, server)        
+                server.close()
+                return None
+            if msg_server[2:]==ACK:
+                msg_server = server.recv(2048).decode(FORMAT)
+            if not check_lrc(msg_server):
+                print("Ha ocurrido un error en el lrc")
+                send(EOT, server)        
+                server.close()
+                return None
+            msg_server=unpack(msg_server)
+            print(msg_server)
+            self.token = json.loads(msg_server).get("token")
+
             send(EOT, server)        
             server.close()
-            return None
-        msg_server=unpack(msg_server)
-        print(msg_server)
-        self.token = json.loads(msg_server).get("token")
-
-        send(EOT, server)        
-        server.close()
+        except Exception as exception:
+            print("Ha ocurrido un error en la conexión:", exception)
         self.play()
 
     def play(self):
-        receive_kafka = threading.Thread(target=self.start_read)
-        receive_kafka.start()
-        send_kafka = threading.Thread(target=self.start_write)
-        send_kafka.start()
-        receive_kafka.join()
-        print("Game end")
+        try:
+            receive_kafka = threading.Thread(target=self.start_read)
+            receive_kafka.start()
+            send_kafka = threading.Thread(target=self.start_write)
+            send_kafka.start()
+            receive_kafka.join()
+            print("Game end")
+        except Exception as exc:
+            print("Ha ocurrido un error en la conexión:", exc)
 
 if (len(sys.argv)==7):
     player=Player(sys.argv[1], int(sys.argv[2]), sys.argv[3], int(sys.argv[4]), sys.argv[5], int(sys.argv[6]))

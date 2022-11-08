@@ -300,8 +300,7 @@ public class GameHandler extends Thread {
 
     @Override
     public void run() {
-        NPCAuthenticationHandler npcAuthHandler = new NPCAuthenticationHandler(idPartida, ipBroker, puertoBroker, jugadores, authThread.getTokenGenerator(), partida);
-        npcAuthHandler.start();
+        
 
         try {
             obtenerTemperaturas();
@@ -315,6 +314,9 @@ public class GameHandler extends Thread {
 
             jugadores = authThread.getJugadores();
             partida.setJugadores(jugadores);
+
+            NPCAuthenticationHandler npcAuthHandler = new NPCAuthenticationHandler(idPartida, ipBroker, puertoBroker, jugadores, authThread.getTokenGenerator(), partida);
+            npcAuthHandler.start();
 
             inicializarConsumidorDeMovimientosDeJugadores();
             inicializarProductorDeMapa();
