@@ -11,6 +11,3 @@ COPY AA_Player.py ./
 # Now the structure looks like this '/usr/app/src/AA_Player.py'
 COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
-
-#CMD instruction should be used to run the software
-#contained by your image, along with any arguments.

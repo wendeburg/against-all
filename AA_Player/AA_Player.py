@@ -123,6 +123,8 @@ class Player:
             if self.move is None:
                 time.sleep(1)
                 self.producer.send("PLAYERMOVEMENTS", {self.token: "KA"})
+            if self.muerto:
+                break
     
     def start_read(self):
         self.receive_message()
@@ -132,10 +134,15 @@ class Player:
             message_count = 0
             for message in self._consumer:
                 message = message.value
+                if self.token not in message["jugadores"]:
+                    print(bcolors.WARNING + "MUELTO" + bcolors.ENDC)
+                    break
+                jugador = message["jugadores"][self.token]
+                print("Nivel:", jugador["nivel"])
                 map = message['mapa']
                 cities = list(message['ciudades'].keys())
-                os.system("cls")
-                print('Message', message_count, ':')
+                os.system("cls||clear")
+                #print('Message', message_count, ':')
                 string_mapa=""
                 string_mapa+=(cities[0]+': '+str(message['ciudades'][cities[0]])+ '             '+cities[1]+': '+ str(message['ciudades'][cities[1]])+"\n")
                 string_mapa+=('---------------------|---------------------'+"\n")
@@ -187,7 +194,7 @@ class Player:
         server.connect(self.reg_addr)
         print (f"Establecida conexión en [{self.reg_addr}]")
         send(operation, server)
-        msg_server = server.recv(2048).decode(FORMAT)
+        msg_server = server.recv(3).decode(FORMAT)
         while msg_server[2:]==ACK:
             msg_server = server.recv(2048).decode(FORMAT)
             if not check_lrc(msg_server):
@@ -200,9 +207,9 @@ class Player:
                 break
             msg=input()
             send(msg, server)
-            msg_server = server.recv(2048).decode(FORMAT)
+            msg_server = server.recv(3).decode(FORMAT)
         else:
-            print("Ha ocurrido un error: nack")
+            print("Ha ocurrido un error:", msg_server)
 
         send(EOT, server)        
         server.close()
@@ -252,13 +259,14 @@ class Player:
             send_kafka.start()
             receive_kafka.join()
             print("Game end")
+            self.muerto=True
         except Exception as exc:
             print("Ha ocurrido un error en la conexión:", exc)
 
 if (len(sys.argv)==7):
     player=Player(sys.argv[1], int(sys.argv[2]), sys.argv[3], int(sys.argv[4]), sys.argv[5], int(sys.argv[6]))
     while True:
-        os.system('cls')
+        os.system('cls||clear')
         print("---------------------------------")
         print("     1. Registrarse")
         print("     2. Editar perfil")
@@ -282,6 +290,7 @@ if (len(sys.argv)==7):
             player.join_game()
             time.sleep(2)
         if opcion==4:
+            os._exit()
             break
 else:
     print("Oops!. Something went bad. I need following args: <Registry_Server_IP> <Registry_Server_Port> <Auth_Server_IP> <Auth_Server_Port> <Bootstrap_Server_IP> <Bootstrap_Server_Port>")
