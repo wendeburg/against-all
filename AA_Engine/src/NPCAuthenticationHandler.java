@@ -23,7 +23,7 @@ import Utils.RandomTokenGenerator;
 
 public class NPCAuthenticationHandler extends Thread {
     private String idPartida;
-    private HashMap<String, Jugador> jugadores;
+    private HashMap<String, Jugador> NPCs;
     private final String ipBroker;
     private final int puertoBroker;
     private KafkaConsumer<String, String> authRequestConsumer;
@@ -36,9 +36,9 @@ public class NPCAuthenticationHandler extends Thread {
         stopThread = true;
     }
 
-    public NPCAuthenticationHandler(String idPartida, String ipBroker, int puertoBroker, HashMap<String, Jugador> jugadores, RandomTokenGenerator tokenGenerator, Game partida) {
+    public NPCAuthenticationHandler(String idPartida, String ipBroker, int puertoBroker, HashMap<String, Jugador> NPCs, RandomTokenGenerator tokenGenerator, Game partida) {
         this.idPartida = idPartida;
-        this.jugadores = jugadores;
+        this.NPCs = NPCs;
         this.partida = partida;
         this.ipBroker = ipBroker;
         this.puertoBroker = puertoBroker;
@@ -135,7 +135,7 @@ public class NPCAuthenticationHandler extends Thread {
                             Jugador npc = new Jugador(nivelNPC, tokenNPC, idNPC, efNPC, ecNPC);
                             npc.setAsNPC();
 
-                            jugadores.put(idNPC, npc);
+                            NPCs.put(idNPC, npc);
                             partida.addPlayerToMap(npc);
                         }
                     }

@@ -1,5 +1,6 @@
 package Game;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
@@ -13,9 +14,11 @@ public class Game {
     private final int porcentajeMinas = 10;
     private final int porcentajeAlimentos = 15;
     private HashMap<String, Jugador> jugadores;
+    private HashMap<String, Jugador> NPCs;
     private ArrayList<Ciudad> ciudades;
 
-    public Game() {
+    public Game(HashMap<String, Jugador> NPCs) {
+        this.NPCs = NPCs;
         initMap();
     }
 
@@ -182,6 +185,9 @@ public class Game {
         Celda colocablesEnNuevaPos = mapa.get(nuevaPos.getFila()).get(nuevaPos.getColumna());
         boolean jugadorMovido = false;
         boolean jugadorMuerto = false;
+        ArrayList<IColocable> colocablesAEliminar = new ArrayList<>();
+        ArrayList<IColocable> nuevosColocalbesEnCelda = new ArrayList<>();
+
 
         for (int i = 0; i < colocablesEnNuevaPos.getColocables().size() && !jugadorMovido && !jugadorMuerto; i++) {
             IColocable c = colocablesEnNuevaPos.getColocables().get(i);
@@ -193,14 +199,10 @@ public class Game {
 
                 jugadores.remove(jugador.getAlias());
 
-                if (colocablesEnNuevaPos.getColocables().size() == 1) {
-                    mapa.get(nuevaPos.getFila()).get(nuevaPos.getColumna()).removeElementAt(i);
-                    mapa.get(nuevaPos.getFila()).get(nuevaPos.getColumna()).addColocalble(new EspacioVacio());
-                }
-                else {
-                    mapa.get(nuevaPos.getFila()).get(nuevaPos.getColumna()).removeElementAt(i);
-                }
+                //mapa.get(nuevaPos.getFila()).get(nuevaPos.getColumna()).removeElementAt(i);
+                //mapa.get(nuevaPos.getFila()).get(nuevaPos.getColumna()).addColocalble(new EspacioVacio());
 
+                colocablesAEliminar.add(c);
                 jugadorMuerto = true;
             }
             else if (c instanceof Alimento) {
@@ -211,15 +213,13 @@ public class Game {
                 jugador.addOneLevel();
 
                 if (colocablesEnNuevaPos.getColocables().size() == 1) {
-                    mapa.get(nuevaPos.getFila()).get(nuevaPos.getColumna()).removeElementAt(i);
-                    mapa.get(nuevaPos.getFila()).get(nuevaPos.getColumna()).addColocalble(jugador);
+                    nuevosColocalbesEnCelda.add(jugador);
                     jugador.setPosicion(nuevaPos);
                     computarEfectosDeTemperatura(jugador, posAnterior, nuevaPos);
                     jugadorMovido = true;
                 }
-                else {
-                    mapa.get(nuevaPos.getFila()).get(nuevaPos.getColumna()).removeElementAt(i);
-                }
+
+                colocablesAEliminar.add(c);
             }
             else if (c instanceof Jugador) {
                 Jugador adversario = (Jugador) c;
@@ -231,32 +231,36 @@ public class Game {
     
                 if (adversario.getNivel() < jugador.getNivel()) {
                     adversario.setPosicion(new Coordenada(-1, -1));
-                    jugadores.remove(adversario.getAlias());
 
-                    if (colocablesEnNuevaPos.getColocables().size() > 1) {
-                        continue;
+                    if (adversario.getIsNPC()) {
+                        NPCs.remove(adversario.getAlias());
+                    }
+                    else {
+                        jugadores.remove(adversario.getAlias());
                     }
 
                     jugador.setPosicion(nuevaPos);
-                    mapa.get(nuevaPos.getFila()).get(nuevaPos.getColumna()).removeElementAt(i);
-                    mapa.get(nuevaPos.getFila()).get(nuevaPos.getColumna()).addColocalble(jugador);
+                    colocablesAEliminar.add(c);
+                    nuevosColocalbesEnCelda.add(jugador);
                     jugadorMovido = true;
                 }
                 else if (adversario.getNivel() > jugador.getNivel()) {
-                    jugadores.remove(jugador.getAlias());
                     jugador.setPosicion(new Coordenada(-1, -1));
+
+                    if (jugador.getIsNPC()) {
+                        NPCs.remove(jugador.getAlias());
+                    }
+                    else {
+                        jugadores.remove(jugador.getAlias());
+                    }
                     
                     jugadorMuerto = true;
                 }
             }
-            else {
-                if (i != (colocablesEnNuevaPos.getColocables().size()-1)) {
-                    mapa.get(nuevaPos.getFila()).get(nuevaPos.getColumna()).removeElementAt(i);
-                }
-
-                removeEmptySpace(colocablesEnNuevaPos);
-                mapa.get(nuevaPos.getFila()).get(nuevaPos.getColumna()).addColocalble(jugador);
+            else { // Es un espacio vacío.
                 jugador.setPosicion(nuevaPos);
+                colocablesAEliminar.add(c);
+                nuevosColocalbesEnCelda.add(jugador);
 
                 if (!jugador.getIsNPC()) {
                     computarEfectosDeTemperatura(jugador, posAnterior, nuevaPos);
@@ -264,22 +268,24 @@ public class Game {
                 
                 jugadorMovido = true;
             }
-    
-            if (jugadorMovido || jugadorMuerto) {
-                removePlayerFromPosition(jugador, posAnterior);
-                mapa.get(posAnterior.getFila()).get(posAnterior.getColumna()).addColocalble(new EspacioVacio());
-            }   
         }
+
+        if (jugadorMovido || jugadorMuerto) {
+            removePlayerFromPosition(jugador, posAnterior);
+        }
+
+        updateCelda(colocablesEnNuevaPos, colocablesAEliminar, nuevosColocalbesEnCelda);
     }
 
-    private void removeEmptySpace(Celda celda) {
-        for (int i = 0; i < celda.getColocables().size(); i++) {
-            IColocable c = celda.getColocables().get(i);
-            
-            if (c instanceof EspacioVacio) {
-                celda.removeElementAt(i);
-                break;
-            }
+    private void updateCelda(Celda celda, ArrayList<IColocable> colocablesAEliminar, ArrayList<IColocable> nuevosColocables) {
+        ArrayList<IColocable> colocablesEnCelda = celda.getColocables();
+
+        for (IColocable c : colocablesAEliminar) {
+            colocablesEnCelda.remove(c);
+        }
+
+        for (IColocable c : nuevosColocables) {
+            colocablesEnCelda.add(c);
         }
     }
 
@@ -291,9 +297,14 @@ public class Game {
 
             if (c instanceof Jugador) {
                 if (j.equals(c)) {
-                    mapa.get(coord.getFila()).get(coord.getColumna()).removeElementAt(i);
+                    colocables.remove(c);
+                    break;
                 }
             }
+        }
+
+        if (colocables.size() == 0) {
+            colocables.add(new EspacioVacio());
         }
     }
 
@@ -327,6 +338,22 @@ public class Game {
         return obj;
     }
 
+    private JSONObject getNPCsAsJSONObject() {
+        JSONObject obj = new JSONObject();
+
+        for (String alias : NPCs.keySet()) {
+            Jugador j = NPCs.get(alias);
+            JSONObject jugador = new JSONObject();
+
+            jugador.put("nivel", j.getNivel());
+            jugador.put("posicion", j.getPosicion().toJSONArray());
+
+            obj.put(alias, jugador);
+        }
+
+        return obj;
+    }
+
     private JSONArray getMapAsJSONArray() {
         JSONArray mapaJSON = new JSONArray();
 
@@ -346,11 +373,13 @@ public class Game {
     public String toJSONString() {
         JSONArray mapaJSON = getMapAsJSONArray();
         JSONObject jugadoresJSON = getPlayersAsJSONObject();
+        JSONObject npcsJSON = getNPCsAsJSONObject();
         JSONObject citiesJSON = getCiudadesAsJSONObject();
         
         JSONObject obj = new JSONObject();
         obj.put("mapa", mapaJSON);
         obj.put("jugadores", jugadoresJSON);
+        obj.put("npcs", npcsJSON);
         obj.put("ciudades", citiesJSON);
         
         return obj.toString();

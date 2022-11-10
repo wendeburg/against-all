@@ -41,6 +41,7 @@ public class GameHandler extends Thread {
     private KafkaProducer<String, String> mapProducer;
     private ArrayList<Ciudad> ciudades;
     private HashMap<String, Jugador> jugadores;
+    private HashMap<String, Jugador> NPCs;
     private Game partida;
     private String idPartida;
 
@@ -51,6 +52,7 @@ public class GameHandler extends Thread {
         this.ipServidorClima = ipServidorCLima;
         this.puertoServidorClima = puertoServidorClima;
         this.archivoCiudades = archivoCiudades;
+        this.NPCs = new HashMap<>();
 
         this.idPartida = UUID.randomUUID().toString();
 
@@ -59,7 +61,7 @@ public class GameHandler extends Thread {
             ciudades.add(new Ciudad());
         }
 
-        this.partida = new Game();
+        this.partida = new Game(NPCs);
     }
 
     private String leeSocket(Socket socketCliente) throws IOException {
@@ -206,6 +208,12 @@ public class GameHandler extends Thread {
             }
         }
 
+        for (String id : NPCs.keySet()) {
+            if (NPCs.get(id).getToken() == token) {
+                return NPCs.get(id);
+            }
+        }
+
         return null;
     }
 
@@ -237,7 +245,7 @@ public class GameHandler extends Thread {
 
     private void removeDisconnectedPlayers(ArrayList<Jugador> jugadoresDesconectados, HashMap<Integer, Long> lastMovementsLogger) {
         for (Jugador j : jugadoresDesconectados) {
-            System.out.println("El jugador " + j.getAlias() + " no ha hecho un movimiento por más de 10 segundos. Ha sido removido de la partida.");
+            System.out.println("El jugador/npc " + j.getAlias() + " no ha hecho un movimiento por más de 10 segundos. Ha sido removido de la partida.");
             lastMovementsLogger.remove(j.getToken());
             jugadores.remove(j.getAlias());
             partida.removePlayerFromMap(j);
@@ -300,7 +308,8 @@ public class GameHandler extends Thread {
 
     @Override
     public void run() {
-        
+        NPCAuthenticationHandler npcAuthHandler = new NPCAuthenticationHandler(idPartida, ipBroker, puertoBroker, NPCs, authThread.getTokenGenerator(), partida);
+        npcAuthHandler.start();
 
         try {
             obtenerTemperaturas();
@@ -314,9 +323,6 @@ public class GameHandler extends Thread {
 
             jugadores = authThread.getJugadores();
             partida.setJugadores(jugadores);
-
-            NPCAuthenticationHandler npcAuthHandler = new NPCAuthenticationHandler(idPartida, ipBroker, puertoBroker, jugadores, authThread.getTokenGenerator(), partida);
-            npcAuthHandler.start();
 
             inicializarConsumidorDeMovimientosDeJugadores();
             inicializarProductorDeMapa();
