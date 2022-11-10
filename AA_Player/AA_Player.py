@@ -134,7 +134,7 @@ class Player:
                 message = message.value
                 map = message['mapa']
                 cities = list(message['ciudades'].keys())
-                os.system("cls")
+                os.system("cls||clear")
                 print('Message', message_count, ':')
                 string_mapa=""
                 string_mapa+=(cities[0]+': '+str(message['ciudades'][cities[0]])+ '             '+cities[1]+': '+ str(message['ciudades'][cities[1]])+"\n")
@@ -187,7 +187,7 @@ class Player:
         server.connect(self.reg_addr)
         print (f"Establecida conexión en [{self.reg_addr}]")
         send(operation, server)
-        msg_server = server.recv(2048).decode(FORMAT)
+        msg_server = server.recv(3).decode(FORMAT)
         while msg_server[2:]==ACK:
             msg_server = server.recv(2048).decode(FORMAT)
             if not check_lrc(msg_server):
@@ -200,9 +200,9 @@ class Player:
                 break
             msg=input()
             send(msg, server)
-            msg_server = server.recv(2048).decode(FORMAT)
+            msg_server = server.recv(3).decode(FORMAT)
         else:
-            print("Ha ocurrido un error: nack")
+            print("Ha ocurrido un error:", msg_server)
 
         send(EOT, server)        
         server.close()
@@ -258,7 +258,7 @@ class Player:
 if (len(sys.argv)==7):
     player=Player(sys.argv[1], int(sys.argv[2]), sys.argv[3], int(sys.argv[4]), sys.argv[5], int(sys.argv[6]))
     while True:
-        os.system('cls')
+        os.system('cls||clear')
         print("---------------------------------")
         print("     1. Registrarse")
         print("     2. Editar perfil")
