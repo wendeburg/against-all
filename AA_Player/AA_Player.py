@@ -117,6 +117,7 @@ class Player:
         self.data = []
         self._valid_moves = {"W":"N", "A":"W", "S":"S", "D":"E", "w":"N", "a":"W", "s":"S", "d":"E", "Q":"NW", "E":"NE", "Z":"SW", "C":"SE", "q":"NW", "e":"NE", "z":"SW", "c":"SE"}
         self.move=None
+        self.muerto=False
     
     def update_every_second(self):
         while True:
@@ -134,11 +135,11 @@ class Player:
             message_count = 0
             for message in self._consumer:
                 message = message.value
-                if self.token not in message["jugadores"]:
-                    print(bcolors.WARNING + "MUELTO" + bcolors.ENDC)
-                    break
-                jugador = message["jugadores"][self.token]
-                print("Nivel:", jugador["nivel"])
+                #if self.token not in message["jugadores"]:
+                #    print(bcolors.WARNING + "MUELTO" + bcolors.ENDC)
+                #    break
+                #jugador = message["jugadores"][self.token]
+                #print("Nivel:", jugador["nivel"])
                 map = message['mapa']
                 cities = list(message['ciudades'].keys())
                 os.system("cls||clear")
