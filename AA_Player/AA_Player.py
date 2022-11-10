@@ -153,7 +153,10 @@ class Player:
                     for elem in fila:
                         string_mapa+=(' ')
                         if len(elem) > 1:
-                            string_mapa+=(bcolors.FAIL + 'E' + bcolors.ENDC)
+                            if elem[0]==1:
+                                string_mapa+=(bcolors.FAIL + message['npcs'][elem[1]]['nivel'] + bcolors.ENDC)
+                            else:
+                                string_mapa+=(bcolors.WARNING + 'M' + bcolors.ENDC)
                         else:
                             match elem[0]:
                                 case 0:
@@ -165,7 +168,10 @@ class Player:
                                 case self.token:
                                     string_mapa+=(bcolors.OKBLUE + 'P' + bcolors.ENDC)
                                 case _:
-                                    string_mapa+=(bcolors.FAIL + 'E' + bcolors.ENDC)
+                                    if elem[0] in message['npcs']:
+                                        string_mapa+=(bcolors.FAIL + message['npcs'][elem[1]]['nivel'] + bcolors.ENDC)
+                                    else:
+                                        string_mapa+=(bcolors.FAIL + 'E' + bcolors.ENDC)
                     count+=1
                     if count==10:
                         string_mapa+=(' -'+"\n")
