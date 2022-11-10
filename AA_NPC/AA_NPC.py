@@ -24,8 +24,10 @@ class NPC:
     
     def update_every_second(self):
         while self.dead==False:
-            time.sleep(1)
-            self.producer.send("PLAYERMOVEMENTS", {self.token: random.choice(list(self._valid_moves.values()))})
+            time.sleep(5)
+            movimiento = random.choice(list(self._valid_moves.values()))
+            print("El movimiento es: " + movimiento)
+            self.producer.send("PLAYERMOVEMENTS", {self.token: movimiento})
     
     def start_read(self):
         self.receive_message()
