@@ -134,6 +134,8 @@ class Player:
         try:
             message_count = 0
             for message in self._consumer:
+                if self.muerto:
+                    break
                 message = message.value
                 #if self.token not in message["jugadores"]:
                 #    print(bcolors.WARNING + "MUELTO" + bcolors.ENDC)
@@ -142,6 +144,8 @@ class Player:
                 #print("Nivel:", jugador["nivel"])
                 map = message['mapa']
                 cities = list(message['ciudades'].keys())
+                jugadores = message['jugadores']
+                npcs = message['npcs']
                 os.system("cls||clear")
                 #print('Message', message_count, ':')
                 string_mapa=""
@@ -154,7 +158,7 @@ class Player:
                         string_mapa+=(' ')
                         if len(elem) > 1:
                             if elem[0]==1:
-                                string_mapa+=(bcolors.FAIL + message['npcs'][elem[1]]['nivel'] + bcolors.ENDC)
+                                string_mapa+=(bcolors.FAIL + npcs[elem[1]]['nivel'] + bcolors.ENDC)
                             else:
                                 string_mapa+=(bcolors.WARNING + 'M' + bcolors.ENDC)
                         else:
@@ -168,10 +172,11 @@ class Player:
                                 case self.token:
                                     string_mapa+=(bcolors.OKBLUE + 'P' + bcolors.ENDC)
                                 case _:
-                                    if elem[0] in message['npcs']:
-                                        string_mapa+=(bcolors.FAIL + message['npcs'][elem[1]]['nivel'] + bcolors.ENDC)
-                                    else:
-                                        string_mapa+=(bcolors.FAIL + 'E' + bcolors.ENDC)
+                                    string_mapa+=(bcolors.FAIL + 'E' + bcolors.ENDC)
+                                    #if elem[0] in jugadores:
+                                    #    string_mapa+=(bcolors.FAIL + 'E' + bcolors.ENDC)
+                                    #else:
+                                    #    string_mapa+=(bcolors.FAIL + npcs[elem[1]]['nivel'] + bcolors.ENDC)
                     count+=1
                     if count==10:
                         string_mapa+=(' -'+"\n")
@@ -183,12 +188,14 @@ class Player:
                 self.data.append(message)
                 message_count += 1
         except Exception as exc:
-            print("Ha ocurrido un error con el servidor:", exc)
+            print("Ha ocurrido un error al recibir mensajes desde el servidor:", exc)
 
     def start_write(self):
         t = threading.Thread(target=self.update_every_second)
         t.start()
         while True:
+            if self.muerto:
+                break
             self.move = input()
             if self.move in self._valid_moves.keys():
                 m = self._valid_moves[self.move]
@@ -229,10 +236,7 @@ class Player:
             contra= input()
             entry = {"alias" : alias, "password": contra}
             server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            try:
-                server.connect(self.engine_addr)
-            except socket.error as exc:
-                print("Caught exception socket.error : %s" %exc)
+            server.connect(self.engine_addr)
             print (f"Establecida conexión en [{self.engine_addr}]")
             send(json.dumps(entry), server)
             msg_server = server.recv(2048).decode(FORMAT)
@@ -297,7 +301,7 @@ if (len(sys.argv)==7):
             player.join_game()
             time.sleep(2)
         if opcion==4:
-            os._exit()
+            os._exit(os.EX_OK)
             break
 else:
     print("Oops!. Something went bad. I need following args: <Registry_Server_IP> <Registry_Server_Port> <Auth_Server_IP> <Auth_Server_Port> <Bootstrap_Server_IP> <Bootstrap_Server_Port>")

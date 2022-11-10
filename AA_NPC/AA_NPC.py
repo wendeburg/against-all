@@ -37,7 +37,7 @@ class NPC:
         for message in self._consumer:
             message = message.value
             jugadores = message["npcs"]
-            if self.token not in jugadores:
+            if self.id not in jugadores:
                 print("MUELTO")
                 self.dead=True
                 break
