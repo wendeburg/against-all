@@ -234,7 +234,7 @@ public class GameHandler extends Thread {
 
                 // Los jugadores que no hayan hecho un movimiento por más de 10 segundos
                 // se consideran desconectados.
-                if (t - lastMovementsLogger.get(token) > 1000000) {
+                if (t - lastMovementsLogger.get(token) > 10) {
                     jugadoresDesconectados.add(j);
                 }
             }
