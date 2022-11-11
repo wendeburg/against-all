@@ -183,18 +183,21 @@ def start():
     CONEX_ACTIVAS = threading.active_count()-1
     print(CONEX_ACTIVAS)
     while True:
-        conn, addr = server.accept()
-        CONEX_ACTIVAS = threading.active_count()
-        if (CONEX_ACTIVAS <= MAX_CONEXIONES): 
-            thread = threading.Thread(target=handle_client, args=(conn, addr))
-            thread.start()
-            print(f"[CONEXIONES ACTIVAS] {CONEX_ACTIVAS}")
-            print("CONEXIONES RESTANTES PARA CERRAR EL SERVICIO", MAX_CONEXIONES-CONEX_ACTIVAS)
-        else:
-            print("DEMASIADAS CONEXIONES. ESPERANDO A QUE ALGUIEN SE VAYA")
-            conn.send("DEMASIADAS CONEXIONES. Tendrás que esperar a que alguien se vaya".encode(FORMAT))
-            conn.close()
-            CONEX_ACTUALES = threading.active_count()-1
+        try:
+            conn, addr = server.accept()
+            CONEX_ACTIVAS = threading.active_count()
+            if (CONEX_ACTIVAS <= MAX_CONEXIONES): 
+                thread = threading.Thread(target=handle_client, args=(conn, addr))
+                thread.start()
+                print(f"[CONEXIONES ACTIVAS] {CONEX_ACTIVAS}")
+                print("CONEXIONES RESTANTES PARA CERRAR EL SERVICIO", MAX_CONEXIONES-CONEX_ACTIVAS)
+            else:
+                print("DEMASIADAS CONEXIONES. ESPERANDO A QUE ALGUIEN SE VAYA")
+                conn.send("DEMASIADAS CONEXIONES. Tendrás que esperar a que alguien se vaya".encode(FORMAT))
+                conn.close()
+                CONEX_ACTUALES = threading.active_count()-1
+        except Exception as exc:
+            print("Algo falló con la conexion:", exc)
 
 
 print("Registry starting...")
@@ -206,10 +209,13 @@ if (len(sys.argv) == 4):
     PORT_BD = sys.argv[3]
     MAX_CONEXIONES = sys.argv[4]
 
-    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.bind(ADDR)
+    try:
+        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server.bind(ADDR)
 
-    start()
+        start()
+    except Exception as exc:
+        print("Something failed binding the socket:", exc)
 else:
     print ("Oops!. Something went bad. I need following args: <Puerto> <ip_bd> <puerto_bd> <conexiones_maximas_concurrentes>")
 
