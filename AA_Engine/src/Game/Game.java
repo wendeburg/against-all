@@ -312,7 +312,7 @@ public class Game {
         removePlayerFromPosition(j, j.getPosicion());
     }
 
-    private JSONObject getCiudadesAsJSONObject() {
+    public JSONObject getCiudadesAsJSONObject() {
         JSONObject obj = new JSONObject();
         
         for (Ciudad c : ciudades) {
@@ -354,7 +354,7 @@ public class Game {
         return obj;
     }
 
-    private JSONArray getMapAsJSONArray() {
+    public JSONArray getMapAsJSONArray() {
         JSONArray mapaJSON = new JSONArray();
 
         for (ArrayList<Celda> fila : mapa) {

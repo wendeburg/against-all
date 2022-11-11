@@ -1,7 +1,13 @@
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.UUID;
+
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 class AA_Engine {
     private AA_Engine() {}
@@ -23,6 +29,7 @@ class AA_Engine {
         String ipDB;
         int puertoDB;
         String archivoCiudades;
+        String archivoGuardadoEstadoPartida;
         try {
             puerto = Integer.parseInt(args[0]);
             maxJugadores = Integer.parseInt(args[1]);
@@ -33,18 +40,20 @@ class AA_Engine {
             ipDB = args[6];
             puertoDB = Integer.parseInt(args[7]);
             archivoCiudades = args[8];
+            archivoGuardadoEstadoPartida = args[9];
 
             BufferedReader consoleReader = new BufferedReader(new InputStreamReader(System.in));
             String chosenOption = "";
 
-            while (!chosenOption.equals("2")) {
+            while (!chosenOption.equals("3")) {
                 System.out.println("\n>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<");
                 System.out.println(">>>>>> AGAINST ALL ENGINE <<<<<<");
                 System.out.println(">>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<\n");
     
                 System.out.println("Opciones:");
                 System.out.println("1. Iniciar partida.");
-                System.out.println("2. Salir.");
+                System.out.println("2. Recuperar última partida.");
+                System.out.println("3. Salir.");
 
                 try {
                     chosenOption = consoleReader.readLine();
@@ -57,7 +66,7 @@ class AA_Engine {
                     AuthenticationHandler authThread = new AuthenticationHandler(puerto, maxJugadores, ipDB, puertoDB);
                     authThread.start();
                     
-                    GameHandler gameThread = new GameHandler(authThread, ipBroker, puertoBroker, ipServidorClima, puertoServidorClima, archivoCiudades);
+                    GameHandler gameThread = new GameHandler(authThread, ipBroker, puertoBroker, ipServidorClima, puertoServidorClima, archivoCiudades, archivoGuardadoEstadoPartida);
                     gameThread.start();
         
                     try {
@@ -66,7 +75,39 @@ class AA_Engine {
                         System.out.println("No se puede esperar al hilo del juego porque se ha interrumpido.");
                     }
                 }
-                else {
+                else if (chosenOption.equals("2")) {
+                    Path filePath = Path.of("./estado_ultima_partida.json");
+                    String content;
+                    try {
+                        content = Files.readString(filePath);
+
+                        JSONParser parser = new JSONParser();
+
+                        JSONObject estadoUltimaPartida = (JSONObject) parser.parse(content);
+
+                        int resultadoVerificacion = verifySavedGameState(estadoUltimaPartida);
+
+                        if (resultadoVerificacion == 0) {
+                            // Mandar a GameHandler.
+                        }
+                        else {
+                            String razon = "";
+                            switch (resultadoVerificacion) {
+                                case 1: razon = "El formato del archivo no es correcto.";
+                                        break;
+                                case 2: razon = "La partida ya ha finalizado.";
+                                        break;
+                            }
+
+                            System.out.println("No se peude recuperar la última partida del archivo " + archivoGuardadoEstadoPartida + ". Razón: " + razon);
+                        }
+                    } catch (IOException e) {
+                        System.out.println("No se peude recuperar la última partida del archivo " + archivoGuardadoEstadoPartida + ". Razón: No se puede leer el archivo.");
+                    } catch (ParseException e) {
+                        System.out.println("No se peude recuperar la última partida del archivo " + archivoGuardadoEstadoPartida + ". Razón: El formato del archivo no es correcto.");
+                    }
+                }
+                else if (!chosenOption.equals("3")) {
                     System.out.println("Opción no conocida. Inténtalo de nuevo.");
                 }
             }
@@ -80,5 +121,18 @@ class AA_Engine {
 
             System.exit(-1);
         }
+    }
+
+    private static Integer verifySavedGameState(JSONObject estadoUltimaPartida) {
+        if (estadoUltimaPartida.size() > 6 || estadoUltimaPartida.size() < 6) {
+            return 1;
+        }
+
+        boolean gameFinished = (boolean) estadoUltimaPartida.get("gamefinished");
+        if (gameFinished) {
+            return 2;
+        }
+
+        return 0;
     }
 }

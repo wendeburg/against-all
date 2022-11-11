@@ -3,6 +3,7 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.Socket;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -38,6 +39,7 @@ public class GameHandler extends Thread {
     private final String ipServidorClima;
     private final int puertoServidorClima;
     private final String archivoCiudades;
+    private final String archivoGuardarEstadoPartida;
     private KafkaConsumer<String, String> playerMovementsConsumer;
     private KafkaProducer<String, String> mapProducer;
     private ArrayList<Ciudad> ciudades;
@@ -46,13 +48,14 @@ public class GameHandler extends Thread {
     private Game partida;
     private String idPartida;
 
-    public GameHandler(AuthenticationHandler authThread, String ipBroker, int puertoBroker, String ipServidorCLima, int puertoServidorClima, String archivoCiudades) {
+    public GameHandler(AuthenticationHandler authThread, String ipBroker, int puertoBroker, String ipServidorCLima, int puertoServidorClima, String archivoCiudades, String archivoGuardarEstadoPartida) {
         this.authThread = authThread;
         this.ipBroker = ipBroker;
         this.puertoBroker = puertoBroker;
         this.ipServidorClima = ipServidorCLima;
         this.puertoServidorClima = puertoServidorClima;
         this.archivoCiudades = archivoCiudades;
+        this.archivoGuardarEstadoPartida = archivoGuardarEstadoPartida;
         this.NPCs = new HashMap<>();
 
         this.idPartida = UUID.randomUUID().toString();
@@ -274,11 +277,89 @@ public class GameHandler extends Thread {
         return obj.toJSONString();
     }
 
+    private JSONObject getNPCsAsJSONObject() {
+        JSONObject obj = new JSONObject();
+
+        for (String alias : NPCs.keySet()) {
+            Jugador j = NPCs.get(alias);
+            JSONObject jugador = new JSONObject();
+
+            jugador.put("nivel", j.getNivel());
+            jugador.put("posicion", j.getPosicion().toJSONArray());
+            jugador.put("token", j.getToken());
+            jugador.put("alias", j.getAlias());
+            jugador.put("isNPC", new Boolean(j.getIsNPC()).toString());
+            jugador.put("efectoFrio", j.getEfectoFrio());
+            jugador.put("efectoCalor", j.getEfectoCalor());
+        }
+
+        return obj;
+    }
+
+    private JSONObject getPlayersAsJSONObject() {
+        JSONObject obj = new JSONObject();
+
+        for (String alias : jugadores.keySet()) {
+            Jugador j = jugadores.get(alias);
+            JSONObject jugador = new JSONObject();
+
+            jugador.put("nivel", j.getNivel());
+            jugador.put("posicion", j.getPosicion().toJSONArray());
+            jugador.put("token", j.getToken());
+            jugador.put("alias", j.getAlias());
+            jugador.put("isNPC", new Boolean(j.getIsNPC()).toString());
+            jugador.put("efectoFrio", j.getEfectoFrio());
+            jugador.put("efectoCalor", j.getEfectoCalor());
+        }
+
+        return obj;
+    }
+
+    private void saveGameStateToFile(ArrayList<String> ganadores) {
+        JSONArray mapaJSON = partida.getMapAsJSONArray();
+        JSONObject jugadoresJSON = getPlayersAsJSONObject();
+        JSONObject npcsJSON = getNPCsAsJSONObject();
+        JSONObject citiesJSON = partida.getCiudadesAsJSONObject();
+        
+        JSONObject obj = new JSONObject();
+        obj.put("mapa", mapaJSON);
+        obj.put("jugadores", jugadoresJSON);
+        obj.put("npcs", npcsJSON);
+        obj.put("ciudades", citiesJSON);
+
+        if (ganadores == null) {
+            obj.put("gamefinished", false);
+            obj.put("winners", new JSONArray());
+        }
+        else {
+            obj.put("gamefinished", true);
+            JSONArray winners = new JSONArray();
+
+            for (String s : ganadores) {
+                winners.add(s);
+            }
+            
+            obj.put("winners", winners);
+        }
+
+        PrintWriter writer;
+        try {
+            writer = new PrintWriter(archivoGuardarEstadoPartida);
+
+            writer.print("");
+            writer.print(obj.toJSONString());
+            writer.close();
+        } catch (FileNotFoundException e) {
+            System.out.println("No se ha podido abrir el archivo para guardar la partida.");
+        }
+    }
+
     private void gestionarPartida() {
         JSONParser parser = new JSONParser();
         HashMap<Integer, Long> lastMovementsLogger = new HashMap<>();
 
         mapProducer.send(new ProducerRecord<String,String>("MAP", getGameStateAsJSONString(null)));
+        saveGameStateToFile();
 
         long tiempoInicial = System.currentTimeMillis() / 1000;
         initLastMovementsLogger(lastMovementsLogger, tiempoInicial);
@@ -325,6 +406,7 @@ public class GameHandler extends Thread {
 
             mapProducer.send(new ProducerRecord<String,String>("MAP", getGameStateAsJSONString(null)));
             mapProducer.flush();
+            saveGameStateToFile();
         }
     }
 
@@ -397,6 +479,7 @@ public class GameHandler extends Thread {
             }
 
             mapProducer.send(new ProducerRecord<String,String>("MAP", getGameStateAsJSONString(ganadores)));
+            saveGameStateToFile(ganadores);
 
             npcAuthHandler.stopThread();
             playerMovementsConsumer.close();
