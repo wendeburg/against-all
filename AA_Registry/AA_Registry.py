@@ -212,7 +212,7 @@ if (len(sys.argv) == 4):
     try:
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server.bind(ADDR)
-
+        server.settimeout(30)
         start()
     except Exception as exc:
         print("Something failed binding the socket:", exc)
