@@ -27,7 +27,6 @@ STX = "\x02"
 ETX = "\x03"
 EOT = "\x04"
 FORMAT = 'utf-8'
-MAX_CONEXIONES = 2
 
 
 def send(msg, client):
@@ -86,8 +85,6 @@ def handle_register(conn, addr, op):
     ef=""
     ec=""
     send("Alias: ", conn)
-    #with open(PLAYERS_DB, mode='r', encoding='utf-8') as feedsjson:
-    #    feeds = json.load(feedsjson)
     mongo_client = pymongo.MongoClient("mongodb://"+IP_BD+":"+PORT_BD+"/")
     db = mongo_client["against-all-db"]
     players = db["users"]
@@ -145,12 +142,6 @@ def handle_register(conn, addr, op):
                         send("EC no válido", conn)
                         break
                     send("FIN", conn)
-                    """
-                    with open(PLAYERS_DB, mode='w', encoding=FORMAT) as feedsjson:
-                        entry={'alias':alias, 'nivel':nivel, 'ef':ef, 'ec':ec}
-                        feeds.append(entry)
-                        json.dump(feeds, feedsjson)
-                    """
                     entry={'alias':alias, 'password':contra, 'nivel':nivel, 'ef':ef, 'ec':ec}
                     if edit_alias=="":
                         players.insert_one(entry)
@@ -167,61 +158,73 @@ def handle_client(conn, addr):
     
     connected = True
     while connected:
-        msg = conn.recv(2048).decode(FORMAT)
-        if msg[2:] == EOT:
-            connected = False
-        else:
-            if msg[2:] == ENQ:
-                send(ACK, conn)
-            if check_lrc(msg):
-                msg=unpack(msg)
-                print(f" He recibido del cliente [{addr}] el mensaje: {msg}")
-                send(ACK, conn)
-                connected = handle_register(conn, addr, msg)
-                print("Connection ended")
+        try:
+            msg = conn.recv(2048).decode(FORMAT)
+            if msg[2:] == EOT:
+                connected = False
             else:
-                print("Ha ocurrido un error con el mensaje")
-                send(NACK, conn)
-    print("ADIOS. TE ESPERO EN OTRA OCASION")
+                if msg[2:] == ENQ:
+                    send(ACK, conn)
+                if check_lrc(msg):
+                    msg=unpack(msg)
+                    print(f" He recibido del cliente [{addr}] el mensaje: {msg}")
+                    send(ACK, conn)
+                    connected = handle_register(conn, addr, msg)
+                    print("Connection ended")
+                else:
+                    print("Ha ocurrido un error con el mensaje")
+                    send(NACK, conn)
+        except socket.timeout as exc:
+            print("Conexion cerrada. El cliente tardó demasiado en responder:",exc)
+        except Exception as exc:
+            print("algo falló:",exc)
+    print(f"[CONEXION CERRADA] {addr} disconnected.")
     conn.close()
 
 
 def start():
-    #with open(PLAYERS_DB, mode='w', encoding=FORMAT) as f:
-    #    json.dump([],f)
     server.listen()
     print(f"[LISTENING] Servidor a la escucha en {SERVER}")
     CONEX_ACTIVAS = threading.active_count()-1
     print(CONEX_ACTIVAS)
     while True:
-        conn, addr = server.accept()
-        CONEX_ACTIVAS = threading.active_count()
-        if (CONEX_ACTIVAS <= MAX_CONEXIONES): 
-            thread = threading.Thread(target=handle_client, args=(conn, addr))
-            thread.start()
-            print(f"[CONEXIONES ACTIVAS] {CONEX_ACTIVAS}")
-            print("CONEXIONES RESTANTES PARA CERRAR EL SERVICIO", MAX_CONEXIONES-CONEX_ACTIVAS)
-        else:
-            print("OOppsss... DEMASIADAS CONEXIONES. ESPERANDO A QUE ALGUIEN SE VAYA")
-            conn.send("OOppsss... DEMASIADAS CONEXIONES. Tendrás que esperar a que alguien se vaya".encode(FORMAT))
-            conn.close()
-            CONEX_ACTUALES = threading.active_count()-1
+        try:
+            conn, addr = server.accept()
+            CONEX_ACTIVAS = threading.active_count()
+            if (CONEX_ACTIVAS <= MAX_CONEXIONES): 
+                thread = threading.Thread(target=handle_client, args=(conn, addr))
+                thread.start()
+                print(f"[CONEXIONES ACTIVAS] {CONEX_ACTIVAS}")
+                print("CONEXIONES RESTANTES PARA CERRAR EL SERVICIO", MAX_CONEXIONES-CONEX_ACTIVAS)
+            else:
+                print("DEMASIADAS CONEXIONES. ESPERANDO A QUE ALGUIEN SE VAYA")
+                conn.send("DEMASIADAS CONEXIONES. Tendrás que esperar a que alguien se vaya".encode(FORMAT))
+                conn.close()
+                CONEX_ACTUALES = threading.active_count()-1
+        except socket.timeout:
+            continue
+        except Exception as exc:
+            print("Algo falló con la conexion:", exc)
 
 
 print("Registry starting...")
 
-if (len(sys.argv) == 4):
+if (len(sys.argv) == 5):
     PORT = int(sys.argv[1])
     ADDR = (SERVER, PORT)
     IP_BD = sys.argv[2]
     PORT_BD = sys.argv[3]
+    MAX_CONEXIONES = int(sys.argv[4])
 
-    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.bind(ADDR)
-
-    start()
+    try:
+        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server.bind(ADDR)
+        server.settimeout(30)
+        start()
+    except Exception as exc:
+        print("Something failed binding the socket:", exc)
 else:
-    print ("Oops!. Something went bad. I need following args: <Puerto> <ip_bd> <puerto_bd>")
+    print ("Oops!. Something went bad. I need following args: <Puerto> <ip_bd> <puerto_bd> <conexiones_maximas_concurrentes>")
 
 
     
