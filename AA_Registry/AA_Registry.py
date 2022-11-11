@@ -158,22 +158,27 @@ def handle_client(conn, addr):
     
     connected = True
     while connected:
-        msg = conn.recv(2048).decode(FORMAT)
-        if msg[2:] == EOT:
-            connected = False
-        else:
-            if msg[2:] == ENQ:
-                send(ACK, conn)
-            if check_lrc(msg):
-                msg=unpack(msg)
-                print(f" He recibido del cliente [{addr}] el mensaje: {msg}")
-                send(ACK, conn)
-                connected = handle_register(conn, addr, msg)
-                print("Connection ended")
+        try:
+            msg = conn.recv(2048).decode(FORMAT)
+            if msg[2:] == EOT:
+                connected = False
             else:
-                print("Ha ocurrido un error con el mensaje")
-                send(NACK, conn)
-    print("ADIOS. TE ESPERO EN OTRA OCASION")
+                if msg[2:] == ENQ:
+                    send(ACK, conn)
+                if check_lrc(msg):
+                    msg=unpack(msg)
+                    print(f" He recibido del cliente [{addr}] el mensaje: {msg}")
+                    send(ACK, conn)
+                    connected = handle_register(conn, addr, msg)
+                    print("Connection ended")
+                else:
+                    print("Ha ocurrido un error con el mensaje")
+                    send(NACK, conn)
+        except socket.timeout as exc:
+            print("Conexion cerrada. El cliente tardó demasiado en responder:",exc)
+        except Exception as exc:
+            print("algo falló:",exc)
+    print(f"[CONEXION CERRADA] {addr} disconnected.")
     conn.close()
 
 
@@ -196,18 +201,20 @@ def start():
                 conn.send("DEMASIADAS CONEXIONES. Tendrás que esperar a que alguien se vaya".encode(FORMAT))
                 conn.close()
                 CONEX_ACTUALES = threading.active_count()-1
+        except socket.timeout:
+            continue
         except Exception as exc:
             print("Algo falló con la conexion:", exc)
 
 
 print("Registry starting...")
 
-if (len(sys.argv) == 4):
+if (len(sys.argv) == 5):
     PORT = int(sys.argv[1])
     ADDR = (SERVER, PORT)
     IP_BD = sys.argv[2]
     PORT_BD = sys.argv[3]
-    MAX_CONEXIONES = sys.argv[4]
+    MAX_CONEXIONES = int(sys.argv[4])
 
     try:
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
