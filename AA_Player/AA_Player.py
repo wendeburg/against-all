@@ -116,9 +116,11 @@ class Player:
                                       value_serializer=lambda x: json.dumps(x).encode('utf-8'))
         self.data = []
         self._valid_moves = {"W":"N", "A":"W", "S":"S", "D":"E", "w":"N", "a":"W", "s":"S", "d":"E", "Q":"NW", "E":"NE", "Z":"SW", "C":"SE", "q":"NW", "e":"NE", "z":"SW", "c":"SE"}
+        self.token=None
         self.move=None
         self.muerto=False
         self.partida_iniciada=False
+        self.alias=""
     
     def update_every_second(self):
         while True:
@@ -134,67 +136,73 @@ class Player:
     def receive_message(self):
         try:
             message_count = 0
-            last_time=9999
-            for message in self._consumer:
+            last_time=time.time()+9999
+            while True:
                 if (time.time() - last_time)>20:
                     print(bcolors.WARNING+"Server no responde"+bcolors.ENDC)
                     time.sleep(3)
                     break
-                last_time=time.time()
-                self.partida_iniciada=True
                 if self.muerto:
                     break
-                message = message.value
-                #if self.token not in message["jugadores"]:
-                #    print(bcolors.WARNING + "MUELTO" + bcolors.ENDC)
-                #    break
-                #jugador = message["jugadores"][self.token]
-                #print("Nivel:", jugador["nivel"])
-                map = message['mapa']
-                cities = list(message['ciudades'].keys())
-                jugadores = message['jugadores']
-                npcs = message['npcs']
-                os.system("cls||clear")
-                #print('Message', message_count, ':')
-                string_mapa=""
-                string_mapa+=(cities[0]+': '+str(message['ciudades'][cities[0]])+ '             '+cities[1]+': '+ str(message['ciudades'][cities[1]])+"\n")
-                string_mapa+=('---------------------|---------------------'+"\n")
-                count = 0
-                for fila in map:
-                    string_mapa+=('|')
-                    for elem in fila:
-                        string_mapa+=(' ')
-                        if len(elem) > 1:
-                            if elem[0]==1:
-                                string_mapa+=(bcolors.FAIL + npcs[elem[1]]['nivel'] + bcolors.ENDC)
+                msg_pack=self._consumer.poll()
+                for tp, messages in msg_pack.items():
+                    last_time=time.time()
+                    for message in messages:
+                        self.partida_iniciada=True
+                        if self.muerto:
+                            break
+                        message = message.value
+                        if self.alias not in message["jugadores"]:
+                            print(bcolors.FAIL + "MUELTO" + bcolors.ENDC)
+                            self.muerto=True
+                            break
+                        jugador = message["jugadores"][self.alias]
+                        print("Nivel:", jugador["nivel"])
+                        map = message['mapa']
+                        cities = list(message['ciudades'].keys())
+                        jugadores = message['jugadores']
+                        npcs = message['npcs']
+                        os.system("cls||clear")
+                        #print('Message', message_count, ':')
+                        string_mapa=""
+                        string_mapa+=(cities[0]+': '+str(message['ciudades'][cities[0]])+ '             '+cities[1]+': '+ str(message['ciudades'][cities[1]])+"\n")
+                        string_mapa+=('---------------------|---------------------'+"\n")
+                        count = 0
+                        for fila in map:
+                            string_mapa+=('|')
+                            for elem in fila:
+                                string_mapa+=(' ')
+                                if len(elem) > 1:
+                                    if elem[0]==1:
+                                        string_mapa+=(bcolors.FAIL + npcs[elem[1]]['nivel'] + bcolors.ENDC)
+                                    else:
+                                        string_mapa+=(bcolors.WARNING + 'M' + bcolors.ENDC)
+                                else:
+                                    match elem[0]:
+                                        case 0:
+                                            string_mapa+=(' ')
+                                        case 1:
+                                            string_mapa+=(bcolors.OKGREEN + 'A' + bcolors.ENDC)
+                                        case 2:
+                                            string_mapa+=(bcolors.WARNING + 'M' + bcolors.ENDC)
+                                        case self.token:
+                                            string_mapa+=(bcolors.OKBLUE + 'P' + bcolors.ENDC)
+                                        case _:
+                                            string_mapa+=(bcolors.FAIL + 'E' + bcolors.ENDC)
+                                            #if elem[0] in jugadores:
+                                            #    string_mapa+=(bcolors.FAIL + 'E' + bcolors.ENDC)
+                                            #else:
+                                            #    string_mapa+=(bcolors.FAIL + npcs[elem[1]]['nivel'] + bcolors.ENDC)
+                            count+=1
+                            if count==10:
+                                string_mapa+=(' -'+"\n")
                             else:
-                                string_mapa+=(bcolors.WARNING + 'M' + bcolors.ENDC)
-                        else:
-                            match elem[0]:
-                                case 0:
-                                    string_mapa+=(' ')
-                                case 1:
-                                    string_mapa+=(bcolors.OKGREEN + 'A' + bcolors.ENDC)
-                                case 2:
-                                    string_mapa+=(bcolors.WARNING + 'M' + bcolors.ENDC)
-                                case self.token:
-                                    string_mapa+=(bcolors.OKBLUE + 'P' + bcolors.ENDC)
-                                case _:
-                                    string_mapa+=(bcolors.FAIL + 'E' + bcolors.ENDC)
-                                    #if elem[0] in jugadores:
-                                    #    string_mapa+=(bcolors.FAIL + 'E' + bcolors.ENDC)
-                                    #else:
-                                    #    string_mapa+=(bcolors.FAIL + npcs[elem[1]]['nivel'] + bcolors.ENDC)
-                    count+=1
-                    if count==10:
-                        string_mapa+=(' -'+"\n")
-                    else:
-                        string_mapa+=(' |'+"\n")
-                string_mapa+=('---------------------|---------------------'+"\n")
-                string_mapa+=(cities[2]+': '+str(message['ciudades'][cities[2]])+ '             '+cities[3]+': '+ str(message['ciudades'][cities[3]])+"\n")
-                print(string_mapa)
-                self.data.append(message)
-                message_count += 1
+                                string_mapa+=(' |'+"\n")
+                        string_mapa+=('---------------------|---------------------'+"\n")
+                        string_mapa+=(cities[2]+': '+str(message['ciudades'][cities[2]])+ '             '+cities[3]+': '+ str(message['ciudades'][cities[3]])+"\n")
+                        print(string_mapa)
+                        self.data.append(message)
+                        message_count += 1
         except Exception as exc:
             print("Ha ocurrido un error al recibir mensajes desde el servidor:", exc)
 
@@ -270,9 +278,12 @@ class Player:
 
             send(EOT, server)        
             server.close()
+            if self.token is not None:
+                self.alias=alias
+            self.play()
         except Exception as exception:
             print("Ha ocurrido un error en la conexión:", exception)
-        self.play()
+        
 
     def play(self):
         try:
