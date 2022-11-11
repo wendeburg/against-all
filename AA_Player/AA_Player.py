@@ -111,7 +111,7 @@ class Player:
                                         auto_offset_reset='latest', enable_auto_commit=True,
                                        bootstrap_servers=self.bootstrap_addr,
                                        value_deserializer=lambda x: json.loads(x.decode('utf-8')),
-                                       group_id=str(uuid.uuid4()), consumer_timeout_ms=20000)
+                                       group_id=str(uuid.uuid4()), consumer_timeout_ms=60000)
         self.producer = kafka.KafkaProducer(bootstrap_servers=self.bootstrap_addr,
                                       value_serializer=lambda x: json.dumps(x).encode('utf-8'))
         self.data = []
@@ -134,7 +134,13 @@ class Player:
     def receive_message(self):
         try:
             message_count = 0
+            last_time=9999
             for message in self._consumer:
+                if (time.time() - last_time)>20:
+                    print(bcolors.WARNING+"Server no responde"+bcolors.ENDC)
+                    time.sleep(3)
+                    break
+                last_time=time.time()
                 self.partida_iniciada=True
                 if self.muerto:
                     break
