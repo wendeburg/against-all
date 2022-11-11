@@ -138,7 +138,7 @@ class Player:
             message_count = 0
             last_time=time.time()+9999
             while True:
-                if (time.time() - last_time)>20:
+                if (time.time() - last_time)>10:
                     print(bcolors.WARNING+"Server no responde"+bcolors.ENDC)
                     time.sleep(3)
                     break
@@ -157,14 +157,13 @@ class Player:
                             self.muerto=True
                             break
                         jugador = message["jugadores"][self.alias]
-                        print("Nivel:", jugador["nivel"])
                         map = message['mapa']
                         cities = list(message['ciudades'].keys())
-                        jugadores = message['jugadores']
                         npcs = message['npcs']
                         os.system("cls||clear")
                         #print('Message', message_count, ':')
                         string_mapa=""
+                        string_mapa+=("Nivel: "+str(jugador["nivel"])+"\n")
                         string_mapa+=(cities[0]+': '+str(message['ciudades'][cities[0]])+ '             '+cities[1]+': '+ str(message['ciudades'][cities[1]])+"\n")
                         string_mapa+=('---------------------|---------------------'+"\n")
                         count = 0
