@@ -234,7 +234,7 @@ public class GameHandler extends Thread {
 
                 // Los jugadores que no hayan hecho un movimiento por más de 10 segundos
                 // se consideran desconectados.
-                if (t - lastMovementsLogger.get(token) > 1000000) {
+                if (t - lastMovementsLogger.get(token) > 10) {
                     jugadoresDesconectados.add(j);
                 }
             }
@@ -261,7 +261,7 @@ public class GameHandler extends Thread {
         long tiempoInicial = System.currentTimeMillis() / 1000;
         initLastMovementsLogger(lastMovementsLogger, tiempoInicial);
         // La partida termina en 2 minutos o cuando quede un jugador.
-        while (jugadores.size() > 1 && ((System.currentTimeMillis() / 1000) - tiempoInicial) <= 120) {
+        while (jugadores.size() > 1 && ((System.currentTimeMillis() / 1000) - tiempoInicial) <= 240) {
             long tickControl = System.currentTimeMillis();
             
             ConsumerRecords<String, String> movimientos = playerMovementsConsumer.poll(Duration.ofMillis(100));
