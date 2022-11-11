@@ -1,3 +1,6 @@
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.UUID;
 
 class AA_Engine {
@@ -31,16 +34,41 @@ class AA_Engine {
             puertoDB = Integer.parseInt(args[7]);
             archivoCiudades = args[8];
 
-            AuthenticationHandler authThread = new AuthenticationHandler(puerto, maxJugadores, ipDB, puertoDB);
-            authThread.start();
-            
-            GameHandler gameThread = new GameHandler(authThread, ipBroker, puertoBroker, ipServidorClima, puertoServidorClima, archivoCiudades);
-            gameThread.start();
+            BufferedReader consoleReader = new BufferedReader(new InputStreamReader(System.in));
+            String chosenOption = "";
 
-            try {
-                gameThread.join();
-            } catch (InterruptedException e) {
-                System.out.println("No se puede esperar al hilo d autenticación porque se ha interrumpido.");
+            while (!chosenOption.equals("2")) {
+                System.out.println("\n>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<");
+                System.out.println(">>>>>> AGAINST ALL ENGINE <<<<<<");
+                System.out.println(">>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<\n");
+    
+                System.out.println("Opciones:");
+                System.out.println("1. Iniciar partida.");
+                System.out.println("2. Salir.");
+
+                try {
+                    chosenOption = consoleReader.readLine();
+                }
+                catch (IOException e) {
+                    System.out.println("Ha habido un error al leer de consola.");
+                }
+
+                if (chosenOption.equals("1")) {
+                    AuthenticationHandler authThread = new AuthenticationHandler(puerto, maxJugadores, ipDB, puertoDB);
+                    authThread.start();
+                    
+                    GameHandler gameThread = new GameHandler(authThread, ipBroker, puertoBroker, ipServidorClima, puertoServidorClima, archivoCiudades);
+                    gameThread.start();
+        
+                    try {
+                        gameThread.join();
+                    } catch (InterruptedException e) {
+                        System.out.println("No se puede esperar al hilo del juego porque se ha interrumpido.");
+                    }
+                }
+                else {
+                    System.out.println("Opción no conocida. Inténtalo de nuevo.");
+                }
             }
             
             System.exit(0);

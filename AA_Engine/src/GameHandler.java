@@ -21,6 +21,7 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
@@ -252,11 +253,32 @@ public class GameHandler extends Thread {
         }
     }
 
+    private String getGameStateAsJSONString(ArrayList<String> ganadores) {
+        JSONObject obj = partida.toJSONObject();
+
+        if (ganadores == null) {
+            obj.put("gamefinished", false);
+            obj.put("winners", new JSONArray());
+        }
+        else {
+            obj.put("gamefinished", true);
+            JSONArray winners = new JSONArray();
+
+            for (String s : ganadores) {
+                winners.add(s);
+            }
+            
+            obj.put("winners", winners);
+        }
+
+        return obj.toJSONString();
+    }
+
     private void gestionarPartida() {
         JSONParser parser = new JSONParser();
         HashMap<Integer, Long> lastMovementsLogger = new HashMap<>();
 
-        mapProducer.send(new ProducerRecord<String,String>("MAP", partida.toJSONString()));
+        mapProducer.send(new ProducerRecord<String,String>("MAP", getGameStateAsJSONString(null)));
 
         long tiempoInicial = System.currentTimeMillis() / 1000;
         initLastMovementsLogger(lastMovementsLogger, tiempoInicial);
@@ -301,7 +323,7 @@ public class GameHandler extends Thread {
                 }
             }
 
-            mapProducer.send(new ProducerRecord<String,String>("MAP", partida.toJSONString()));
+            mapProducer.send(new ProducerRecord<String,String>("MAP", getGameStateAsJSONString(null)));
             mapProducer.flush();
         }
     }
@@ -316,6 +338,7 @@ public class GameHandler extends Thread {
         } catch (FileNotFoundException e1) {
             System.out.println("No se ha encontrado el archivo para leer las ciudades. Usando ciudades por defecto.");
         }
+
         partida.setCiudades(ciudades);
 
         try {
@@ -327,8 +350,53 @@ public class GameHandler extends Thread {
             inicializarConsumidorDeMovimientosDeJugadores();
             inicializarProductorDeMapa();
             
-            // Imprimir que la partida comenzará ahora.
+            System.out.println("La partida con id >>> " + idPartida + " <<< ha comenzado.");
             gestionarPartida();
+            System.out.println("La partida con id >>> " + idPartida + " <<< ha finalizado.\n");
+
+            ArrayList<String> ganadores = new ArrayList<>();
+
+            if (jugadores.size() == 1) {
+                System.out.println("El jugador >>> " + jugadores.get(jugadores.keySet().toArray()[0]).getAlias() + " <<< ha ganado.");
+                ganadores.add(jugadores.get(jugadores.keySet().toArray()[0]).getAlias());
+            }
+            else {
+                Jugador jugadorConMayorNivel = null;
+
+                for (String j : jugadores.keySet()) {
+                    Jugador currentPlayer = jugadores.get(j);
+
+                    if (jugadorConMayorNivel == null || jugadorConMayorNivel.getNivel() < currentPlayer.getNivel()) {
+                        jugadorConMayorNivel = currentPlayer;
+                    }
+                }
+
+                ArrayList<Jugador> jugadoresConMayorNivel = new ArrayList<>();
+
+                for (String j : jugadores.keySet()) {
+                    Jugador currentPlayer = jugadores.get(j);
+
+                    if (jugadorConMayorNivel.getNivel() == currentPlayer.getNivel() && jugadorConMayorNivel.getToken() != currentPlayer.getToken()) {
+                        jugadoresConMayorNivel.add(currentPlayer);
+                    }
+                }
+
+                if (jugadoresConMayorNivel.size() == 0) {
+                    System.out.println("El jugador >>> " + jugadorConMayorNivel.getAlias() + " <<< ha ganado.");
+                    ganadores.add(jugadorConMayorNivel.getAlias());
+                }
+                else {
+                    System.out.println("Ha habido un empate entre los jugadores: ");
+                    System.out.println(">>> " + jugadorConMayorNivel.getAlias() + " <<<");
+
+                    for (Jugador j : jugadoresConMayorNivel) {
+                        System.out.println(">>> " + j.getAlias() + " <<<");
+                        ganadores.add(j.getAlias());
+                    }
+                }
+            }
+
+            mapProducer.send(new ProducerRecord<String,String>("MAP", getGameStateAsJSONString(ganadores)));
 
             npcAuthHandler.stopThread();
             playerMovementsConsumer.close();

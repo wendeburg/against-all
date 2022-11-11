@@ -370,7 +370,7 @@ public class Game {
         return mapaJSON;
     }
 
-    public String toJSONString() {
+    public JSONObject toJSONObject() {
         JSONArray mapaJSON = getMapAsJSONArray();
         JSONObject jugadoresJSON = getPlayersAsJSONObject();
         JSONObject npcsJSON = getNPCsAsJSONObject();
@@ -382,6 +382,6 @@ public class Game {
         obj.put("npcs", npcsJSON);
         obj.put("ciudades", citiesJSON);
         
-        return obj.toString();
+        return obj;
     }
 }
