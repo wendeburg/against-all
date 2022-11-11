@@ -118,6 +118,7 @@ class Player:
         self._valid_moves = {"W":"N", "A":"W", "S":"S", "D":"E", "w":"N", "a":"W", "s":"S", "d":"E", "Q":"NW", "E":"NE", "Z":"SW", "C":"SE", "q":"NW", "e":"NE", "z":"SW", "c":"SE"}
         self.move=None
         self.muerto=False
+        self.partida_iniciada=False
     
     def update_every_second(self):
         while True:
@@ -134,6 +135,7 @@ class Player:
         try:
             message_count = 0
             for message in self._consumer:
+                self.partida_iniciada=True
                 if self.muerto:
                     break
                 message = message.value
@@ -197,10 +199,14 @@ class Player:
             if self.muerto:
                 break
             self.move = input()
-            if self.move in self._valid_moves.keys():
+            if not self.partida_iniciada:
+                print(bcolors.WARNING + "Partida no iniciada" + bcolors.ENDC)
+            elif self.move in self._valid_moves.keys():
                 m = self._valid_moves[self.move]
                 self.producer.send("PLAYERMOVEMENTS", {self.token: m})
                 self.move = None
+            else:
+                print(bcolors.WARNING + "Movimiento no válido" + bcolors.ENDC)
     
 
     def register(self, operation):
