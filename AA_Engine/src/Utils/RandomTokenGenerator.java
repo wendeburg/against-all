@@ -27,4 +27,8 @@ public class RandomTokenGenerator {
 
         return numeroAleatorio;
     }
+
+    public void addTokenToUsedTokens(int token) {
+        tokensUsadas.add(token);
+    }
 }

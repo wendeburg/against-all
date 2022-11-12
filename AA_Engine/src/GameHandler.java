@@ -86,6 +86,8 @@ public class GameHandler extends Thread {
             Jugador jugador = new Jugador(nivel, token, key, ef, ec);
             jugador.setPosicion(new Coordenada(Integer.parseInt(pos.get(0).toString()), Integer.parseInt(pos.get(1).toString())));
 
+            tokenGenerator.addTokenToUsedTokens(token);
+
             jugadores.put(key, jugador);
         }
     }
@@ -105,6 +107,8 @@ public class GameHandler extends Thread {
             jugador.setPosicion(new Coordenada(Integer.parseInt(pos.get(0).toString()), Integer.parseInt(pos.get(1).toString())));
 
             jugador.setAsNPC();
+
+            tokenGenerator.addTokenToUsedTokens(token);
 
             NPCs.put(key, jugador);
         }
