@@ -27,10 +27,12 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
 import Game.Ciudad;
+import Game.Coordenada;
 import Game.Jugador;
 import Game.Game;
 import Utils.MessageParser;
 import Utils.MessageParserException;
+import Utils.RandomTokenGenerator;
 
 public class GameHandler extends Thread {
     private final AuthenticationHandler authThread;
@@ -40,6 +42,8 @@ public class GameHandler extends Thread {
     private final int puertoServidorClima;
     private final String archivoCiudades;
     private final String archivoGuardarEstadoPartida;
+    private final boolean partidaRecuperada;
+    private RandomTokenGenerator tokenGenerator;
     private KafkaConsumer<String, String> playerMovementsConsumer;
     private KafkaProducer<String, String> mapProducer;
     private ArrayList<Ciudad> ciudades;
@@ -48,7 +52,77 @@ public class GameHandler extends Thread {
     private Game partida;
     private String idPartida;
 
-    public GameHandler(AuthenticationHandler authThread, String ipBroker, int puertoBroker, String ipServidorCLima, int puertoServidorClima, String archivoCiudades, String archivoGuardarEstadoPartida) {
+    public GameHandler(String ipBroker, int puertoBroker, String archivoGuardarEstadoPartida, JSONObject estadoPartida, RandomTokenGenerator tokenGenerator) throws Exception {
+        this.authThread = null;
+        this.ipBroker = ipBroker;
+        this.puertoBroker = puertoBroker;
+        this.ipServidorClima = "";
+        this.puertoServidorClima = -1;
+        this.archivoCiudades = "";
+        this.archivoGuardarEstadoPartida = archivoGuardarEstadoPartida;
+        this.partidaRecuperada = true;
+        this.tokenGenerator = tokenGenerator;
+
+        initPlayers((JSONObject) estadoPartida.get("jugadores"));
+        initNPCs((JSONObject) estadoPartida.get("npcs"));
+        initCities((JSONObject) estadoPartida.get("ciudades"));
+
+        this.partida = new Game((JSONArray) estadoPartida.get("mapa"), jugadores, NPCs, ciudades);
+    }
+
+    private void initPlayers(JSONObject jugadoresJSON) throws NumberFormatException {
+        this.jugadores = new HashMap<>();
+
+        for (Object k : jugadoresJSON.keySet()) {
+            String key = k.toString();
+            Integer nivel = Integer.parseInt(((JSONObject) jugadoresJSON.get(key)).get("nivel").toString());
+            Integer token = Integer.parseInt(((JSONObject) jugadoresJSON.get(key)).get("token").toString());
+            Integer ef = Integer.parseInt(((JSONObject) jugadoresJSON.get(key)).get("efectoFrio").toString());
+            Integer ec = Integer.parseInt(((JSONObject) jugadoresJSON.get(key)).get("efectoCalor").toString());
+            JSONArray pos = (JSONArray) ((JSONObject) jugadoresJSON.get(key)).get("posicion");
+
+            Jugador jugador = new Jugador(nivel, token, key, ef, ec);
+            jugador.setPosicion(new Coordenada(Integer.parseInt(pos.get(0).toString()), Integer.parseInt(pos.get(1).toString())));
+
+            jugadores.put(key, jugador);
+        }
+    }
+
+    private void initNPCs(JSONObject NPCsJSON) throws NumberFormatException {
+        this.NPCs = new HashMap<>();
+
+        for (Object k : NPCsJSON.keySet()) {
+            String key = k.toString();
+            Integer nivel = Integer.parseInt(((JSONObject) NPCsJSON.get(key)).get("nivel").toString());
+            Integer token = Integer.parseInt(((JSONObject) NPCsJSON.get(key)).get("token").toString());
+            Integer ef = Integer.parseInt(((JSONObject) NPCsJSON.get(key)).get("efectoFrio").toString());
+            Integer ec = Integer.parseInt(((JSONObject) NPCsJSON.get(key)).get("efectoCalor").toString());
+            JSONArray pos = (JSONArray) ((JSONObject) NPCsJSON.get(key)).get("posicion");
+
+            Jugador jugador = new Jugador(nivel, token, key, ef, ec);
+            jugador.setPosicion(new Coordenada(Integer.parseInt(pos.get(0).toString()), Integer.parseInt(pos.get(1).toString())));
+
+            jugador.setAsNPC();
+
+            NPCs.put(key, jugador);
+        }
+    }
+
+    private void initCities(JSONObject ciudadesJSON) throws NumberFormatException {
+        this.ciudades = new ArrayList<>();
+
+        for (Object c : ciudadesJSON.keySet()) {
+            String nombre = c.toString();
+            Float temperatura = Float.parseFloat(ciudadesJSON.get(nombre).toString());
+
+            Ciudad ciudad = new Ciudad(nombre, temperatura);
+
+            ciudades.add(ciudad);
+        }
+    }
+
+    public GameHandler(AuthenticationHandler authThread, String ipBroker, int puertoBroker, String ipServidorCLima, int puertoServidorClima, String archivoCiudades, String archivoGuardarEstadoPartida, RandomTokenGenerator tokenGenerator) {
+        this.partidaRecuperada = false;
         this.authThread = authThread;
         this.ipBroker = ipBroker;
         this.puertoBroker = puertoBroker;
@@ -56,6 +130,7 @@ public class GameHandler extends Thread {
         this.puertoServidorClima = puertoServidorClima;
         this.archivoCiudades = archivoCiudades;
         this.archivoGuardarEstadoPartida = archivoGuardarEstadoPartida;
+        this.tokenGenerator = tokenGenerator;
         this.NPCs = new HashMap<>();
 
         this.idPartida = UUID.randomUUID().toString();
@@ -287,10 +362,11 @@ public class GameHandler extends Thread {
             jugador.put("nivel", j.getNivel());
             jugador.put("posicion", j.getPosicion().toJSONArray());
             jugador.put("token", j.getToken());
-            jugador.put("alias", j.getAlias());
             jugador.put("isNPC", new Boolean(j.getIsNPC()).toString());
             jugador.put("efectoFrio", j.getEfectoFrio());
             jugador.put("efectoCalor", j.getEfectoCalor());
+
+            obj.put(alias, jugador);
         }
 
         return obj;
@@ -306,10 +382,11 @@ public class GameHandler extends Thread {
             jugador.put("nivel", j.getNivel());
             jugador.put("posicion", j.getPosicion().toJSONArray());
             jugador.put("token", j.getToken());
-            jugador.put("alias", j.getAlias());
             jugador.put("isNPC", new Boolean(j.getIsNPC()).toString());
             jugador.put("efectoFrio", j.getEfectoFrio());
             jugador.put("efectoCalor", j.getEfectoCalor());
+
+            obj.put(alias, jugador);
         }
 
         return obj;
@@ -359,11 +436,11 @@ public class GameHandler extends Thread {
         HashMap<Integer, Long> lastMovementsLogger = new HashMap<>();
 
         mapProducer.send(new ProducerRecord<String,String>("MAP", getGameStateAsJSONString(null)));
-        saveGameStateToFile();
+        saveGameStateToFile(null);
 
         long tiempoInicial = System.currentTimeMillis() / 1000;
         initLastMovementsLogger(lastMovementsLogger, tiempoInicial);
-        // La partida termina en 2 minutos o cuando quede un jugador.
+        // La partida termina en 4 minutos o cuando quede un jugador.
         while (jugadores.size() > 1 && ((System.currentTimeMillis() / 1000) - tiempoInicial) <= 240) {
             long tickControl = System.currentTimeMillis();
             
@@ -406,28 +483,33 @@ public class GameHandler extends Thread {
 
             mapProducer.send(new ProducerRecord<String,String>("MAP", getGameStateAsJSONString(null)));
             mapProducer.flush();
-            saveGameStateToFile();
+            saveGameStateToFile(null);
         }
     }
 
     @Override
     public void run() {
-        NPCAuthenticationHandler npcAuthHandler = new NPCAuthenticationHandler(idPartida, ipBroker, puertoBroker, NPCs, authThread.getTokenGenerator(), partida);
+        NPCAuthenticationHandler npcAuthHandler = new NPCAuthenticationHandler(idPartida, ipBroker, puertoBroker, NPCs, tokenGenerator, partida);
         npcAuthHandler.start();
 
-        try {
-            obtenerTemperaturas();
-        } catch (FileNotFoundException e1) {
-            System.out.println("No se ha encontrado el archivo para leer las ciudades. Usando ciudades por defecto.");
+        if (!partidaRecuperada) {
+            try {
+                obtenerTemperaturas();
+            } catch (FileNotFoundException e1) {
+                System.out.println("No se ha encontrado el archivo para leer las ciudades. Usando ciudades por defecto.");
+            }
+    
+            partida.setCiudades(ciudades);
         }
 
-        partida.setCiudades(ciudades);
-
         try {
-            authThread.join();
 
-            jugadores = authThread.getJugadores();
-            partida.setJugadores(jugadores);
+            if (!partidaRecuperada) {
+                authThread.join();
+
+                jugadores = authThread.getJugadores();
+                partida.setJugadores(jugadores);
+            }
 
             inicializarConsumidorDeMovimientosDeJugadores();
             inicializarProductorDeMapa();

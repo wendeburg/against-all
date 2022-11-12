@@ -5,17 +5,22 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
 
+import org.apache.kafka.common.metrics.stats.TokenBucket;
+import org.apache.kafka.common.protocol.types.Field.Bool;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+
+import Utils.RandomTokenGenerator;
 
 class AA_Engine {
     private AA_Engine() {}
 
     public static void main(String[] args) {
-        if (args.length < 9) {
+        if (args.length < 10) {
             System.out.println("Error faltan argumentos.");
-            System.out.println("Uso: java -jar AA_Engine.jar puerto max_jugadores ip_sv_clima puerto_sv_clima ip_broker puerto_broker ip_bd puerto_bd archivo_con_ciudades");
+            System.out.println("Uso: java -jar AA_Engine.jar puerto max_jugadores ip_sv_clima puerto_sv_clima ip_broker puerto_broker ip_bd puerto_bd archivo_con_ciudades archivo_para_guardar_partida");
 
             System.exit(-1);
         }
@@ -63,10 +68,12 @@ class AA_Engine {
                 }
 
                 if (chosenOption.equals("1")) {
-                    AuthenticationHandler authThread = new AuthenticationHandler(puerto, maxJugadores, ipDB, puertoDB);
+                    RandomTokenGenerator tokenGenerator = new RandomTokenGenerator();
+
+                    AuthenticationHandler authThread = new AuthenticationHandler(puerto, maxJugadores, ipDB, puertoDB, tokenGenerator);
                     authThread.start();
                     
-                    GameHandler gameThread = new GameHandler(authThread, ipBroker, puertoBroker, ipServidorClima, puertoServidorClima, archivoCiudades, archivoGuardadoEstadoPartida);
+                    GameHandler gameThread = new GameHandler(authThread, ipBroker, puertoBroker, ipServidorClima, puertoServidorClima, archivoCiudades, archivoGuardadoEstadoPartida, tokenGenerator);
                     gameThread.start();
         
                     try {
@@ -88,7 +95,14 @@ class AA_Engine {
                         int resultadoVerificacion = verifySavedGameState(estadoUltimaPartida);
 
                         if (resultadoVerificacion == 0) {
-                            // Mandar a GameHandler.
+                            GameHandler gameThread;
+                            RandomTokenGenerator tokenGenerator = new RandomTokenGenerator();
+                            try {
+                                gameThread = new GameHandler(ipBroker, puertoBroker, archivoGuardadoEstadoPartida, estadoUltimaPartida, tokenGenerator);
+                                gameThread.start();
+                            } catch (Exception e) {
+                                System.out.println("Ha habido un error al intentar recuperar la partida. Razón: " + e.getMessage()); // Error en el archivo->"Los datos del archivo son incorrectos."
+                            }
                         }
                         else {
                             String razon = "";
@@ -97,6 +111,7 @@ class AA_Engine {
                                         break;
                                 case 2: razon = "La partida ya ha finalizado.";
                                         break;
+                                case 3: razon = "Los datos del archivo son incorrectos.";
                             }
 
                             System.out.println("No se peude recuperar la última partida del archivo " + archivoGuardadoEstadoPartida + ". Razón: " + razon);
@@ -117,7 +132,7 @@ class AA_Engine {
         }
         catch (NumberFormatException e) {
             System.out.println("Error en tipo de argumentos.");
-            System.out.println("Uso: java -jar AA_Engine.jar puerto max_jugadores ip_sv_clima puerto_sv_clima ip_broker puerto_broker ip_bd puerto_bd");
+            System.out.println("Uso: java -jar AA_Engine.jar puerto max_jugadores ip_sv_clima puerto_sv_clima ip_broker puerto_broker ip_bd puerto_bd archivo_con_ciudades archivo_para_guardar_partida");
 
             System.exit(-1);
         }
@@ -127,10 +142,26 @@ class AA_Engine {
         if (estadoUltimaPartida.size() > 6 || estadoUltimaPartida.size() < 6) {
             return 1;
         }
+        else {
+            JSONArray mapa = (JSONArray) estadoUltimaPartida.get("mapa");
+            JSONObject jugadores = (JSONObject) estadoUltimaPartida.get("jugadores");
+            JSONObject npcs = (JSONObject) estadoUltimaPartida.get("npcs");
+            JSONObject ciudades = (JSONObject) estadoUltimaPartida.get("ciudades");
+            JSONArray ganadores = (JSONArray) estadoUltimaPartida.get("winners");
+            Boolean partidaTerminada = (Boolean) estadoUltimaPartida.get("gamefinished");
 
-        boolean gameFinished = (boolean) estadoUltimaPartida.get("gamefinished");
-        if (gameFinished) {
-            return 2;
+            if (!(mapa != null && jugadores != null && npcs != null && ciudades != null && ganadores != null && partidaTerminada != null)) {
+                return 1;
+            }
+
+            boolean gameFinished = (boolean) estadoUltimaPartida.get("gamefinished");
+            if (gameFinished) {
+                return 2;
+            }
+    
+            if (jugadores.size() < 1) {
+                return 3;
+            }
         }
 
         return 0;

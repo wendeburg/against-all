@@ -18,11 +18,11 @@ public class AuthenticationHandler extends Thread {
     private final HashMap<String, Jugador> jugadores;
     RandomTokenGenerator tokenGenerator;
 
-    public AuthenticationHandler(int puerto, int maxJugadores, String ipDB, int puertoDB) {
+    public AuthenticationHandler(int puerto, int maxJugadores, String ipDB, int puertoDB, RandomTokenGenerator tokenGenerator) {
         this.puerto = puerto;
         this.maxJugadores = maxJugadores;
         this.jugadores = new HashMap<>();
-        this.tokenGenerator = new RandomTokenGenerator();
+        this.tokenGenerator = tokenGenerator;
 
         cliente = MongoClients.create("mongodb://" + ipDB + ":" + puertoDB);
         MongoDatabase db = cliente.getDatabase("against-all-db");

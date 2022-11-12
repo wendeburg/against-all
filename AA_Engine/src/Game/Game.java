@@ -17,6 +17,70 @@ public class Game {
     private HashMap<String, Jugador> NPCs;
     private ArrayList<Ciudad> ciudades;
 
+    public Game(JSONArray mapaJSON, HashMap<String, Jugador> jugadores, HashMap<String, Jugador> NPCs, ArrayList<Ciudad> ciudades) throws Exception {
+        this.NPCs = NPCs;
+        this.jugadores = jugadores;
+        this.ciudades = ciudades;
+
+        mapFromJSON(mapaJSON);
+    }
+
+    private void mapFromJSON(JSONArray mapaJSON) throws Exception {
+        mapa = new ArrayList<>();
+
+        for (Object f : mapaJSON) {
+            JSONArray filaJSON = (JSONArray) f;
+
+            ArrayList<Celda> fila = new ArrayList<>();
+
+            for (Object c : filaJSON) {
+                JSONArray celdaJSON = (JSONArray) c;
+
+                Celda celda = new Celda();
+
+                for (Object co : celdaJSON) {
+                    int representacionColocable = Integer.parseInt(co.toString());
+
+                    switch (representacionColocable) {
+                        case 0: celda.addColocalble(new EspacioVacio());
+                                break;
+                        case 1: celda.addColocalble(new Alimento());
+                                break;
+                        case 2: celda.addColocalble(new Mina());
+                                break;
+                        default:Jugador j = getPlayerByToken(representacionColocable);
+                                if (j != null) {
+                                    celda.addColocalble(j);
+                                }
+                                else {
+                                    throw new Exception("Formato del archivo incorrecto.");
+                                }
+                    }
+                }
+
+                fila.add(celda);
+            }
+
+            mapa.add(fila);
+        }
+    }
+
+    private Jugador getPlayerByToken(int token) {
+        for (String alias : jugadores.keySet()) {
+            if (jugadores.get(alias).getToken() == token) {
+                return jugadores.get(alias);
+            }
+        }
+
+        for (String id : NPCs.keySet()) {
+            if (NPCs.get(id).getToken() == token) {
+                return NPCs.get(id);
+            }
+        }
+
+        return null;
+    }
+
     public Game(HashMap<String, Jugador> NPCs) {
         this.NPCs = NPCs;
         initMap();

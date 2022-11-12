@@ -7,7 +7,6 @@ import struct
 import kafka
 import threading
 import uuid
-import keyboard
 
 
 class bcolors:
