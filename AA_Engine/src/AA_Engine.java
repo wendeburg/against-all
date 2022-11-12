@@ -139,7 +139,7 @@ class AA_Engine {
     }
 
     private static Integer verifySavedGameState(JSONObject estadoUltimaPartida) {
-        if (estadoUltimaPartida.size() > 6 || estadoUltimaPartida.size() < 6) {
+        if (estadoUltimaPartida.size() > 7 || estadoUltimaPartida.size() < 7) {
             return 1;
         }
         else {
@@ -149,8 +149,9 @@ class AA_Engine {
             JSONObject ciudades = (JSONObject) estadoUltimaPartida.get("ciudades");
             JSONArray ganadores = (JSONArray) estadoUltimaPartida.get("winners");
             Boolean partidaTerminada = (Boolean) estadoUltimaPartida.get("gamefinished");
+            String idPartida = estadoUltimaPartida.get("idpartida").toString();
 
-            if (!(mapa != null && jugadores != null && npcs != null && ciudades != null && ganadores != null && partidaTerminada != null)) {
+            if (!(mapa != null && jugadores != null && npcs != null && ciudades != null && ganadores != null && partidaTerminada != null && idPartida != null & !idPartida.equals(""))) {
                 return 1;
             }
 

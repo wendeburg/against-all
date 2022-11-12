@@ -63,6 +63,8 @@ public class GameHandler extends Thread {
         this.partidaRecuperada = true;
         this.tokenGenerator = tokenGenerator;
 
+        this.idPartida = estadoPartida.get("idpartida").toString();
+
         initPlayers((JSONObject) estadoPartida.get("jugadores"));
         initNPCs((JSONObject) estadoPartida.get("npcs"));
         initCities((JSONObject) estadoPartida.get("ciudades"));
@@ -399,6 +401,7 @@ public class GameHandler extends Thread {
         JSONObject citiesJSON = partida.getCiudadesAsJSONObject();
         
         JSONObject obj = new JSONObject();
+        obj.put("idpartida", idPartida);
         obj.put("mapa", mapaJSON);
         obj.put("jugadores", jugadoresJSON);
         obj.put("npcs", npcsJSON);
