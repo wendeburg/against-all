@@ -2,6 +2,7 @@ import sys
 import socket
 import struct
 import json
+from urllib import response
 
 FORMAT = 'utf-8'
 ENQ = "\x05"
@@ -65,11 +66,16 @@ def send_message(msg, msg_length):
 def read_sv_response():
     print("RESPONSE RECIEVED:")
 
-    response = CONNECTION.recv(2048)
+    responseLength = CONNECTION.recv(2)
+    response = CONNECTION.recv(int.from_bytes(responseLength, "big", signed=False))
+
     print(response)
 
     print("\nDECODED RESPONSE:")
-    print(response.decode(FORMAT))
+    decodedResponse = response.decode(FORMAT)
+    print(decodedResponse)
+
+    return decodedResponse
 
 
 def send_message_handler():
@@ -82,7 +88,11 @@ def send_message_handler():
     print("\nMESSAGE SENT:\n")
     print(packagedMessage)
 
-    read_sv_response()
+    res = read_sv_response()
+    
+    if (res == ACK):
+        read_sv_response()
+    
     
 def send_character_handler():
     cont = True
@@ -99,7 +109,8 @@ def send_character_handler():
             
             send_char(character)
 
-            read_sv_response()
+            if character != "ACK":
+                read_sv_response()
 
             cont = False
         else:
