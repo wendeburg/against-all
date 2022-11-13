@@ -8,3 +8,5 @@ WORKDIR /usr/app/src
 #to COPY the remote file at working directory in container
 COPY AA_NPC.py ./
 # Now the structure looks like this '/usr/app/src/AA_NPC.py'
+COPY requirements.txt requirements.txt
+RUN pip install -r requirements.txt
