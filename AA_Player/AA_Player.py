@@ -115,12 +115,15 @@ class Player:
         self.muerto=False
         self.partida_iniciada=False
         self.alias=""
+        self.partida=False
 
     def start_read(self):
         try:
             message_count = 0
             last_time=time.time()+9999
             while True:
+                if self.partida:
+                    break
                 if (time.time() - last_time)>10:
                     print(bcolors.WARNING+"Servidor no responde"+bcolors.ENDC)
                     time.sleep(3)
@@ -139,10 +142,25 @@ class Player:
                             print(bcolors.FAIL + "MUELTO" + bcolors.ENDC)
                             self.muerto=True
                             break
+                        self.partida = message["gamefinished"]
+                        winners = message["winners"]
+                        if self.partida:
+                            print(bcolors.BOLD + "Partida terminada" + bcolors.ENDC)
+                            print("Ganadores:", winners)
+                            if self.alias in winners:
+                                print(bcolors.OKGREEN + "Has ganado" + bcolors.ENDC)
+                            else:
+                                print(bcolors.FAIL + "Has perdido" + bcolors.ENDC)
+                            break
                         jugador = message["jugadores"][self.alias]
                         map = message['mapa']
                         cities = list(message['ciudades'].keys())
-                        npcs = message['npcs']
+                        jugadores=[]
+                        for j in message["jugadores"]:
+                            jugadores.append(message["jugadores"][j]["token"])
+                        npcs = []
+                        for n in message["npcs"]:
+                            npcs.append(message["npcs"][n]["token"])
                         os.system("cls||clear")
                         #print('Message', message_count, ':')
                         string_mapa=""
@@ -170,11 +188,11 @@ class Player:
                                         case self.token:
                                             string_mapa+=(bcolors.OKBLUE + 'P' + bcolors.ENDC)
                                         case _:
-                                            string_mapa+=(bcolors.FAIL + 'E' + bcolors.ENDC)
-                                            #if elem[0] in jugadores:
-                                            #    string_mapa+=(bcolors.FAIL + 'E' + bcolors.ENDC)
-                                            #else:
-                                            #    string_mapa+=(bcolors.FAIL + npcs[elem[1]]['nivel'] + bcolors.ENDC)
+                                            #string_mapa+=(bcolors.FAIL + 'E' + bcolors.ENDC)
+                                            if elem[0] in jugadores:
+                                                string_mapa+=(bcolors.FAIL + 'E' + bcolors.ENDC)
+                                            else:
+                                                string_mapa+=(bcolors.FAIL + npcs[elem[1]]['nivel'] + bcolors.ENDC)
                             count+=1
                             if count==10:
                                 string_mapa+=(' -'+"\n")
