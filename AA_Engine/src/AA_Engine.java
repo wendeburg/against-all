@@ -3,10 +3,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.UUID;
 
-import org.apache.kafka.common.metrics.stats.TokenBucket;
-import org.apache.kafka.common.protocol.types.Field.Bool;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;

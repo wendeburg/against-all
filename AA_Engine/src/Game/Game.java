@@ -423,6 +423,7 @@ public class Game {
 
             jugador.put("nivel", j.getNivel());
             jugador.put("posicion", j.getPosicion().toJSONArray());
+            jugador.put("token", j.getToken());
 
             obj.put(alias, jugador);
         }
