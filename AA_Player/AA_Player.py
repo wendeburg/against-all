@@ -126,7 +126,6 @@ class Player:
                     break
                 if (time.time() - last_time)>10:
                     print(bcolors.WARNING+"Servidor no responde: intentando reconectar"+bcolors.ENDC)
-                    reconnect_time = time.time()
                     if (time.time()-last_time)>30:
                         break
                 if self.muerto:
