@@ -21,19 +21,17 @@ class NPC:
         self.producer = kafka.KafkaProducer(bootstrap_servers=self.bootstrap_addr,
                                       value_serializer=lambda x: json.dumps(x).encode('utf-8'))
         self.nivel=nivel
+        self.partida=False
         self._valid_moves = {"W":"N", "A":"W", "S":"S", "D":"E", "w":"N", "a":"W", "s":"S", "d":"E", "Q":"NW", "E":"NE", "Z":"SW", "C":"SE", "q":"NW", "e":"NE", "z":"SW", "c":"SE"}
     
     def update_every_second(self):
-        while self.dead==False:
+        while self.dead==False and self.partida==False:
             time.sleep(5)
             movimiento = random.choice(list(self._valid_moves.values()))
             print("El movimiento es: " + movimiento)
             self.producer.send("PLAYERMOVEMENTS", {self.token: movimiento})
-    
-    def start_read(self):
-        self.receive_message()
 
-    def receive_message(self):
+    def start_read(self):
         message_count = 0
         for message in self._consumer:
             message = message.value
@@ -41,6 +39,11 @@ class NPC:
             if self.id not in jugadores:
                 print("MUELTO")
                 self.dead=True
+                break
+            self.partida=message["gamefinished"]
+            if self.partida:
+                print("Partida finalizada")
+                self
                 break
             message_count += 1
 
