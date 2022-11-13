@@ -107,33 +107,16 @@ class Player:
         self.engine_addr = (engine_ip, engine_port)
         self.reg_addr = (reg_ip, reg_port)
         self.bootstrap_addr = [bootstrap_ip + ":" + str(bootstrap_port)]
-        self._consumer = kafka.KafkaConsumer("MAP",
-                                        auto_offset_reset='latest', enable_auto_commit=True,
-                                       bootstrap_servers=self.bootstrap_addr,
-                                       value_deserializer=lambda x: json.loads(x.decode('utf-8')),
-                                       group_id=str(uuid.uuid4()), consumer_timeout_ms=60000)
-        self.producer = kafka.KafkaProducer(bootstrap_servers=self.bootstrap_addr,
-                                      value_serializer=lambda x: json.dumps(x).encode('utf-8'))
-        self.data = []
+        self._consumer=None
+        self.producer=None
         self._valid_moves = {"W":"N", "A":"W", "S":"S", "D":"E", "w":"N", "a":"W", "s":"S", "d":"E", "Q":"NW", "E":"NE", "Z":"SW", "C":"SE", "q":"NW", "e":"NE", "z":"SW", "c":"SE"}
         self.token=None
         self.move=None
         self.muerto=False
         self.partida_iniciada=False
         self.alias=""
-    
-    def update_every_second(self):
-        while True:
-            if self.move is None:
-                time.sleep(2)
-                self.producer.send("PLAYERMOVEMENTS", {self.token: "KA"})
-            if self.muerto:
-                break
-    
-    def start_read(self):
-        self.receive_message()
 
-    def receive_message(self):
+    def start_read(self):
         try:
             message_count = 0
             last_time=time.time()+9999
@@ -200,12 +183,19 @@ class Player:
                         string_mapa+=('---------------------|---------------------'+"\n")
                         string_mapa+=(cities[2]+': '+str(message['ciudades'][cities[2]])+ '             '+cities[3]+': '+ str(message['ciudades'][cities[3]])+"\n")
                         print(string_mapa)
-                        self.data.append(message)
                         message_count += 1
         except Exception as exc:
             print("Ha ocurrido un error al recibir mensajes desde el servidor:", exc)
             print(bcolors.OKCYAN + "Pulsa enter para continuar." + bcolors.ENDC)
             input()
+
+    def update_every_second(self):
+        while True:
+            if self.move is None:
+                time.sleep(2)
+                self.producer.send("PLAYERMOVEMENTS", {self.token: "KA"})
+            if self.muerto:
+                break
 
     def start_write(self):
         try:
@@ -214,13 +204,11 @@ class Player:
             while True:
                 if self.muerto:
                     break
-                """
-                event = keyboard.read_event()
-                if event.event_type == keyboard.KEY_DOWN:
-                    self.move = event.name
-                else:
-                    continue
-                """
+                #event = keyboard.read_event()
+                #if event.event_type == keyboard.KEY_DOWN:
+                #    self.move = event.name
+                #else:
+                #    continue
                 self.move=input()
                 if not self.partida_iniciada:
                     print(bcolors.WARNING + "Partida no iniciada" + bcolors.ENDC)
@@ -240,22 +228,39 @@ class Player:
         try:
             server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             server.settimeout(30)
-            server.connect(self.reg_addr)
-            #print (f"Establecida conexión en [{self.reg_addr}]")
+            try:
+                server.connect(self.reg_addr)
+            except:
+                raise Exception("Servidor de registro no disponible")
+            msg_server = server.recv(3).decode(FORMAT)
+            if msg_server[2:]==ACK:
+                print (f"Establecida conexión con el servidor de registro.")
+            else:
+                msg_server = server.recv(2048).decode(FORMAT)
+                if not check_lrc(msg_server):
+                    raise Exception("Ha ocurrido un error en el lrc")
+                msg_server=unpack(msg_server)
+                raise Exception(msg_server)
             send(operation, server)
             msg_server = server.recv(3).decode(FORMAT)
             while msg_server[2:]==ACK:
                 msg_server = server.recv(2048).decode(FORMAT)
                 if not check_lrc(msg_server):
-                    #print("Ha ocurrido un error en el lrc")
-                    break
+                    raise Exception("Ha ocurrido un error en el lrc")
                 msg_server=unpack(msg_server)
                 print(msg_server)
                 if msg_server=="FIN" or msg_server[:5]=="ERROR":
-                    
+                    if msg_server=="FIN":
+                        print(bcolors.OKGREEN + "Usuario registrado correctamente" + bcolors.ENDC)
                     break
                 msg=input()
-                send(msg, server)
+                if msg_server=="Alias: " and operation=="edit":
+                    print("Contraseña: ")
+                    contra=input()
+                    entry = {"alias" : msg, "password": contra}
+                    send(json.dumps(entry), server)
+                else:
+                    send(msg, server)
                 msg_server = server.recv(3).decode(FORMAT)
             else:
                 print(bcolors.WARNING + "Ha ocurrido un error:" + bcolors.ENDC, msg_server)
@@ -272,6 +277,16 @@ class Player:
 
     def join_game(self):
         try:
+            try:
+                self._consumer = kafka.KafkaConsumer("MAP",
+                                            auto_offset_reset='latest', enable_auto_commit=True,
+                                        bootstrap_servers=self.bootstrap_addr,
+                                        value_deserializer=lambda x: json.loads(x.decode('utf-8')),
+                                        group_id=str(uuid.uuid4()), consumer_timeout_ms=120000)
+                self.producer = kafka.KafkaProducer(bootstrap_servers=self.bootstrap_addr,
+                                        value_serializer=lambda x: json.dumps(x).encode('utf-8'))
+            except:
+                raise Exception("Kafka broker no disponible")
             print("Alias: ")
             alias = input()
             print("Contra: ")
