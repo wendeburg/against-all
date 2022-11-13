@@ -1,4 +1,5 @@
 import sys
+import os
 import time
 import json
 import kafka
@@ -9,7 +10,7 @@ import random
 
 
 class NPC:
-    def __init__(self, bootstrap_ip, bootstrap_port):
+    def __init__(self, bootstrap_ip, bootstrap_port, nivel):
         self.dead=False
         self.bootstrap_addr = [bootstrap_ip + ":" + str(bootstrap_port)]
         self._consumer = kafka.KafkaConsumer("MAP",
@@ -19,7 +20,7 @@ class NPC:
                                        group_id=str(uuid.uuid4()))
         self.producer = kafka.KafkaProducer(bootstrap_servers=self.bootstrap_addr,
                                       value_serializer=lambda x: json.dumps(x).encode('utf-8'))
-        self.data = []
+        self.nivel=nivel
         self._valid_moves = {"W":"N", "A":"W", "S":"S", "D":"E", "w":"N", "a":"W", "s":"S", "d":"E", "Q":"NW", "E":"NE", "Z":"SW", "C":"SE", "q":"NW", "e":"NE", "z":"SW", "c":"SE"}
     
     def update_every_second(self):
@@ -41,7 +42,6 @@ class NPC:
                 print("MUELTO")
                 self.dead=True
                 break
-            self.data.append(message)
             message_count += 1
 
     def join_game(self):
@@ -76,7 +76,20 @@ class NPC:
         print("Game end")
 
 if (len(sys.argv)==3):
-    player=NPC(sys.argv[1], int(sys.argv[2]))
+    os.system('cls||clear')
+    print("Nivel del NPC:")
+    try:
+        nivel=int(input())
+        if nivel<11 and nivel>0:
+            player=NPC(sys.argv[1], int(sys.argv[2]), nivel)
+        else:
+            raise Exception("Nivel no válido")
+    except Exception as exc:
+        
+        print("ERROR:",exc)
+        time.sleep(4)
+        os._exit(os.EX_OK)
+    
 
     player.join_game()
     time.sleep(2)
