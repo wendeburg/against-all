@@ -292,6 +292,12 @@ class Player:
 
     def join_game(self):
         try:
+            self.token=None
+            self.move=None
+            self.muerto=False
+            self.partida_iniciada=False
+            self.alias=""
+            self.partida=False
             try:
                 self._consumer = kafka.KafkaConsumer("MAP",
                                             auto_offset_reset='latest', enable_auto_commit=True,
