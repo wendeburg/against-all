@@ -65,7 +65,7 @@ class NPC:
             if message["npcid"] == self.id:
                 self.token=message["token"]
                 idPartida=message["partida"]
-                producer.send("NPCAUTHREQUEST", {"type": "offer-accepted", "npcid": self.id, "partida": idPartida, "token": self.token, "nivel": "1", "ef": "1", "ec": "1"})
+                producer.send("NPCAUTHREQUEST", {"type": "offer-accepted", "npcid": self.id, "partida": idPartida, "token": self.token, "nivel":self.nivel, "ef": "0", "ec": "0"})
                 break
         print(self.token)
         self.play()
