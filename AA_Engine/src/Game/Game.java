@@ -8,6 +8,12 @@ import java.util.Random;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
+import org.bson.Document;
+
+import com.mongodb.client.*;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+
 public class Game {
     private ArrayList<ArrayList<Celda>> mapa;
     private final int tamanoMapa = 20;
@@ -16,9 +22,76 @@ public class Game {
     private HashMap<String, Jugador> jugadores;
     private HashMap<String, Jugador> NPCs;
     private ArrayList<Ciudad> ciudades;
+    private final MongoCollection<Document> coleccionUsuarios;
 
-    public Game(HashMap<String, Jugador> NPCs) {
+    public Game(JSONArray mapaJSON, HashMap<String, Jugador> jugadores, HashMap<String, Jugador> NPCs, ArrayList<Ciudad> ciudades, MongoCollection<Document> coleccionUsuarios) throws Exception {
         this.NPCs = NPCs;
+        this.jugadores = jugadores;
+        this.ciudades = ciudades;
+        this.coleccionUsuarios = coleccionUsuarios;
+
+        mapFromJSON(mapaJSON);
+    }
+
+    private void mapFromJSON(JSONArray mapaJSON) throws Exception {
+        mapa = new ArrayList<>();
+
+        for (Object f : mapaJSON) {
+            JSONArray filaJSON = (JSONArray) f;
+
+            ArrayList<Celda> fila = new ArrayList<>();
+
+            for (Object c : filaJSON) {
+                JSONArray celdaJSON = (JSONArray) c;
+
+                Celda celda = new Celda();
+
+                for (Object co : celdaJSON) {
+                    int representacionColocable = Integer.parseInt(co.toString());
+
+                    switch (representacionColocable) {
+                        case 0: celda.addColocalble(new EspacioVacio());
+                                break;
+                        case 1: celda.addColocalble(new Alimento());
+                                break;
+                        case 2: celda.addColocalble(new Mina());
+                                break;
+                        default:Jugador j = getPlayerByToken(representacionColocable);
+                                if (j != null) {
+                                    celda.addColocalble(j);
+                                }
+                                else {
+                                    throw new Exception("Formato del archivo incorrecto.");
+                                }
+                    }
+                }
+
+                fila.add(celda);
+            }
+
+            mapa.add(fila);
+        }
+    }
+
+    private Jugador getPlayerByToken(int token) {
+        for (String alias : jugadores.keySet()) {
+            if (jugadores.get(alias).getToken() == token) {
+                return jugadores.get(alias);
+            }
+        }
+
+        for (String id : NPCs.keySet()) {
+            if (NPCs.get(id).getToken() == token) {
+                return NPCs.get(id);
+            }
+        }
+
+        return null;
+    }
+
+    public Game(HashMap<String, Jugador> NPCs, MongoCollection<Document> coleccionUsuarios) {
+        this.NPCs = NPCs;
+        this.coleccionUsuarios = coleccionUsuarios;
         initMap();
     }
 
@@ -198,6 +271,7 @@ public class Game {
                 }
 
                 jugadores.remove(jugador.getAlias());
+                coleccionUsuarios.updateOne(new Document("alias", jugador.getAlias()), new Document("$set", new Document("nivel", jugador.getNivel())));
 
                 //mapa.get(nuevaPos.getFila()).get(nuevaPos.getColumna()).removeElementAt(i);
                 //mapa.get(nuevaPos.getFila()).get(nuevaPos.getColumna()).addColocalble(new EspacioVacio());
@@ -237,6 +311,7 @@ public class Game {
                     }
                     else {
                         jugadores.remove(adversario.getAlias());
+                        coleccionUsuarios.updateOne(new Document("alias", adversario.getAlias()), new Document("$set", new Document("nivel", adversario.getNivel())));
                     }
 
                     jugador.setPosicion(nuevaPos);
@@ -252,6 +327,7 @@ public class Game {
                     }
                     else {
                         jugadores.remove(jugador.getAlias());
+                        coleccionUsuarios.updateOne(new Document("alias", jugador.getAlias()), new Document("$set", new Document("nivel", jugador.getNivel())));
                     }
                     
                     jugadorMuerto = true;
@@ -312,7 +388,7 @@ public class Game {
         removePlayerFromPosition(j, j.getPosicion());
     }
 
-    private JSONObject getCiudadesAsJSONObject() {
+    public JSONObject getCiudadesAsJSONObject() {
         JSONObject obj = new JSONObject();
         
         for (Ciudad c : ciudades) {
@@ -354,7 +430,7 @@ public class Game {
         return obj;
     }
 
-    private JSONArray getMapAsJSONArray() {
+    public JSONArray getMapAsJSONArray() {
         JSONArray mapaJSON = new JSONArray();
 
         for (ArrayList<Celda> fila : mapa) {
@@ -370,7 +446,7 @@ public class Game {
         return mapaJSON;
     }
 
-    public String toJSONString() {
+    public JSONObject toJSONObject() {
         JSONArray mapaJSON = getMapAsJSONArray();
         JSONObject jugadoresJSON = getPlayersAsJSONObject();
         JSONObject npcsJSON = getNPCsAsJSONObject();
@@ -382,6 +458,6 @@ public class Game {
         obj.put("npcs", npcsJSON);
         obj.put("ciudades", citiesJSON);
         
-        return obj.toString();
+        return obj;
     }
 }

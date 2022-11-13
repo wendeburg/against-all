@@ -19,7 +19,8 @@
                 "29092",
                 "localhost",
                 "27777",
-                "./nombre_ciudades.txt"
+                "./nombre_ciudades.txt",
+                "./estado_ultima_partida.json"
             ]
         }
     ]

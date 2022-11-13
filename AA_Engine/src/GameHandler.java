@@ -3,6 +3,7 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.Socket;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -21,14 +22,23 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
+import org.bson.Document;
+
+import com.mongodb.client.*;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+
 import Game.Ciudad;
+import Game.Coordenada;
 import Game.Jugador;
 import Game.Game;
 import Utils.MessageParser;
 import Utils.MessageParserException;
+import Utils.RandomTokenGenerator;
 
 public class GameHandler extends Thread {
     private final AuthenticationHandler authThread;
@@ -37,6 +47,9 @@ public class GameHandler extends Thread {
     private final String ipServidorClima;
     private final int puertoServidorClima;
     private final String archivoCiudades;
+    private final String archivoGuardarEstadoPartida;
+    private final boolean partidaRecuperada;
+    private RandomTokenGenerator tokenGenerator;
     private KafkaConsumer<String, String> playerMovementsConsumer;
     private KafkaProducer<String, String> mapProducer;
     private ArrayList<Ciudad> ciudades;
@@ -44,14 +57,98 @@ public class GameHandler extends Thread {
     private HashMap<String, Jugador> NPCs;
     private Game partida;
     private String idPartida;
+    private final MongoCollection<Document> coleccionUsuarios;
+    private final MongoClient cliente;
 
-    public GameHandler(AuthenticationHandler authThread, String ipBroker, int puertoBroker, String ipServidorCLima, int puertoServidorClima, String archivoCiudades) {
+    public GameHandler(String ipBroker, int puertoBroker, String archivoGuardarEstadoPartida, JSONObject estadoPartida, RandomTokenGenerator tokenGenerator, String ipDB, int puertoDB) throws Exception {
+        this.authThread = null;
+        this.ipBroker = ipBroker;
+        this.puertoBroker = puertoBroker;
+        this.ipServidorClima = "";
+        this.puertoServidorClima = -1;
+        this.archivoCiudades = "";
+        this.archivoGuardarEstadoPartida = archivoGuardarEstadoPartida;
+        this.partidaRecuperada = true;
+        this.tokenGenerator = tokenGenerator;
+
+        this.idPartida = estadoPartida.get("idpartida").toString();
+
+        initPlayers((JSONObject) estadoPartida.get("jugadores"));
+        initNPCs((JSONObject) estadoPartida.get("npcs"));
+        initCities((JSONObject) estadoPartida.get("ciudades"));
+
+        cliente = MongoClients.create("mongodb://" + ipDB + ":" + puertoDB);
+        MongoDatabase db = cliente.getDatabase("against-all-db");
+        coleccionUsuarios = db.getCollection("users");
+
+        this.partida = new Game((JSONArray) estadoPartida.get("mapa"), jugadores, NPCs, ciudades, coleccionUsuarios);
+    }
+
+    private void initPlayers(JSONObject jugadoresJSON) throws NumberFormatException {
+        this.jugadores = new HashMap<>();
+
+        for (Object k : jugadoresJSON.keySet()) {
+            String key = k.toString();
+            Integer nivel = Integer.parseInt(((JSONObject) jugadoresJSON.get(key)).get("nivel").toString());
+            Integer token = Integer.parseInt(((JSONObject) jugadoresJSON.get(key)).get("token").toString());
+            Integer ef = Integer.parseInt(((JSONObject) jugadoresJSON.get(key)).get("efectoFrio").toString());
+            Integer ec = Integer.parseInt(((JSONObject) jugadoresJSON.get(key)).get("efectoCalor").toString());
+            JSONArray pos = (JSONArray) ((JSONObject) jugadoresJSON.get(key)).get("posicion");
+
+            Jugador jugador = new Jugador(nivel, token, key, ef, ec);
+            jugador.setPosicion(new Coordenada(Integer.parseInt(pos.get(0).toString()), Integer.parseInt(pos.get(1).toString())));
+
+            tokenGenerator.addTokenToUsedTokens(token);
+
+            jugadores.put(key, jugador);
+        }
+    }
+
+    private void initNPCs(JSONObject NPCsJSON) throws NumberFormatException {
+        this.NPCs = new HashMap<>();
+
+        for (Object k : NPCsJSON.keySet()) {
+            String key = k.toString();
+            Integer nivel = Integer.parseInt(((JSONObject) NPCsJSON.get(key)).get("nivel").toString());
+            Integer token = Integer.parseInt(((JSONObject) NPCsJSON.get(key)).get("token").toString());
+            Integer ef = Integer.parseInt(((JSONObject) NPCsJSON.get(key)).get("efectoFrio").toString());
+            Integer ec = Integer.parseInt(((JSONObject) NPCsJSON.get(key)).get("efectoCalor").toString());
+            JSONArray pos = (JSONArray) ((JSONObject) NPCsJSON.get(key)).get("posicion");
+
+            Jugador jugador = new Jugador(nivel, token, key, ef, ec);
+            jugador.setPosicion(new Coordenada(Integer.parseInt(pos.get(0).toString()), Integer.parseInt(pos.get(1).toString())));
+
+            jugador.setAsNPC();
+
+            tokenGenerator.addTokenToUsedTokens(token);
+
+            NPCs.put(key, jugador);
+        }
+    }
+
+    private void initCities(JSONObject ciudadesJSON) throws NumberFormatException {
+        this.ciudades = new ArrayList<>();
+
+        for (Object c : ciudadesJSON.keySet()) {
+            String nombre = c.toString();
+            Float temperatura = Float.parseFloat(ciudadesJSON.get(nombre).toString());
+
+            Ciudad ciudad = new Ciudad(nombre, temperatura);
+
+            ciudades.add(ciudad);
+        }
+    }
+
+    public GameHandler(AuthenticationHandler authThread, String ipBroker, int puertoBroker, String ipServidorCLima, int puertoServidorClima, String archivoCiudades, String archivoGuardarEstadoPartida, RandomTokenGenerator tokenGenerator, String ipDB, int puertoDB) {
+        this.partidaRecuperada = false;
         this.authThread = authThread;
         this.ipBroker = ipBroker;
         this.puertoBroker = puertoBroker;
         this.ipServidorClima = ipServidorCLima;
         this.puertoServidorClima = puertoServidorClima;
         this.archivoCiudades = archivoCiudades;
+        this.archivoGuardarEstadoPartida = archivoGuardarEstadoPartida;
+        this.tokenGenerator = tokenGenerator;
         this.NPCs = new HashMap<>();
 
         this.idPartida = UUID.randomUUID().toString();
@@ -61,7 +158,11 @@ public class GameHandler extends Thread {
             ciudades.add(new Ciudad());
         }
 
-        this.partida = new Game(NPCs);
+        cliente = MongoClients.create("mongodb://" + ipDB + ":" + puertoDB);
+        MongoDatabase db = cliente.getDatabase("against-all-db");
+        coleccionUsuarios = db.getCollection("users");
+
+        this.partida = new Game(NPCs, coleccionUsuarios);
     }
 
     private String leeSocket(Socket socketCliente) throws IOException {
@@ -249,6 +350,111 @@ public class GameHandler extends Thread {
             lastMovementsLogger.remove(j.getToken());
             jugadores.remove(j.getAlias());
             partida.removePlayerFromMap(j);
+
+            if (!j.getIsNPC()) {
+                coleccionUsuarios.updateOne(new Document("alias", j.getAlias()), new Document("$set", new Document("nivel", j.getNivel())));
+            }
+        }
+    }
+
+    private String getGameStateAsJSONString(ArrayList<String> ganadores) {
+        JSONObject obj = partida.toJSONObject();
+
+        if (ganadores == null) {
+            obj.put("gamefinished", false);
+            obj.put("winners", new JSONArray());
+        }
+        else {
+            obj.put("gamefinished", true);
+            JSONArray winners = new JSONArray();
+
+            for (String s : ganadores) {
+                winners.add(s);
+            }
+            
+            obj.put("winners", winners);
+        }
+
+        return obj.toJSONString();
+    }
+
+    private JSONObject getNPCsAsJSONObject() {
+        JSONObject obj = new JSONObject();
+
+        for (String alias : NPCs.keySet()) {
+            Jugador j = NPCs.get(alias);
+            JSONObject jugador = new JSONObject();
+
+            jugador.put("nivel", j.getNivel());
+            jugador.put("posicion", j.getPosicion().toJSONArray());
+            jugador.put("token", j.getToken());
+            jugador.put("isNPC", new Boolean(j.getIsNPC()).toString());
+            jugador.put("efectoFrio", j.getEfectoFrio());
+            jugador.put("efectoCalor", j.getEfectoCalor());
+
+            obj.put(alias, jugador);
+        }
+
+        return obj;
+    }
+
+    private JSONObject getPlayersAsJSONObject() {
+        JSONObject obj = new JSONObject();
+
+        for (String alias : jugadores.keySet()) {
+            Jugador j = jugadores.get(alias);
+            JSONObject jugador = new JSONObject();
+
+            jugador.put("nivel", j.getNivel());
+            jugador.put("posicion", j.getPosicion().toJSONArray());
+            jugador.put("token", j.getToken());
+            jugador.put("isNPC", new Boolean(j.getIsNPC()).toString());
+            jugador.put("efectoFrio", j.getEfectoFrio());
+            jugador.put("efectoCalor", j.getEfectoCalor());
+
+            obj.put(alias, jugador);
+        }
+
+        return obj;
+    }
+
+    private void saveGameStateToFile(ArrayList<String> ganadores) {
+        JSONArray mapaJSON = partida.getMapAsJSONArray();
+        JSONObject jugadoresJSON = getPlayersAsJSONObject();
+        JSONObject npcsJSON = getNPCsAsJSONObject();
+        JSONObject citiesJSON = partida.getCiudadesAsJSONObject();
+        
+        JSONObject obj = new JSONObject();
+        obj.put("idpartida", idPartida);
+        obj.put("mapa", mapaJSON);
+        obj.put("jugadores", jugadoresJSON);
+        obj.put("npcs", npcsJSON);
+        obj.put("ciudades", citiesJSON);
+
+        if (ganadores == null) {
+            obj.put("gamefinished", false);
+            obj.put("winners", new JSONArray());
+        }
+        else {
+            obj.put("gamefinished", true);
+            JSONArray winners = new JSONArray();
+
+            for (String s : ganadores) {
+                winners.add(s);
+            }
+            
+            obj.put("winners", winners);
+        }
+
+        PrintWriter writer;
+        try {
+            writer = new PrintWriter(archivoGuardarEstadoPartida);
+
+            writer.print("");
+            writer.print(obj.toJSONString());
+            writer.close();
+        } catch (FileNotFoundException e) {
+            System.out.println("No se ha podido abrir el archivo para guardar la partida.");
         }
     }
 
@@ -256,11 +462,12 @@ public class GameHandler extends Thread {
         JSONParser parser = new JSONParser();
         HashMap<Integer, Long> lastMovementsLogger = new HashMap<>();
 
-        mapProducer.send(new ProducerRecord<String,String>("MAP", partida.toJSONString()));
+        mapProducer.send(new ProducerRecord<String,String>("MAP", getGameStateAsJSONString(null)));
+        saveGameStateToFile(null);
 
         long tiempoInicial = System.currentTimeMillis() / 1000;
         initLastMovementsLogger(lastMovementsLogger, tiempoInicial);
-        // La partida termina en 2 minutos o cuando quede un jugador.
+        // La partida termina en 4 minutos o cuando quede un jugador.
         while (jugadores.size() > 1 && ((System.currentTimeMillis() / 1000) - tiempoInicial) <= 240) {
             long tickControl = System.currentTimeMillis();
             
@@ -301,38 +508,95 @@ public class GameHandler extends Thread {
                 }
             }
 
-            mapProducer.send(new ProducerRecord<String,String>("MAP", partida.toJSONString()));
+            mapProducer.send(new ProducerRecord<String,String>("MAP", getGameStateAsJSONString(null)));
             mapProducer.flush();
+            saveGameStateToFile(null);
         }
     }
 
     @Override
     public void run() {
-        NPCAuthenticationHandler npcAuthHandler = new NPCAuthenticationHandler(idPartida, ipBroker, puertoBroker, NPCs, authThread.getTokenGenerator(), partida);
+        NPCAuthenticationHandler npcAuthHandler = new NPCAuthenticationHandler(idPartida, ipBroker, puertoBroker, NPCs, tokenGenerator, partida);
         npcAuthHandler.start();
 
-        try {
-            obtenerTemperaturas();
-        } catch (FileNotFoundException e1) {
-            System.out.println("No se ha encontrado el archivo para leer las ciudades. Usando ciudades por defecto.");
+        if (!partidaRecuperada) {
+            try {
+                obtenerTemperaturas();
+            } catch (FileNotFoundException e1) {
+                System.out.println("No se ha encontrado el archivo para leer las ciudades. Usando ciudades por defecto.");
+            }
+    
+            partida.setCiudades(ciudades);
         }
-        partida.setCiudades(ciudades);
 
         try {
-            authThread.join();
 
-            jugadores = authThread.getJugadores();
-            partida.setJugadores(jugadores);
+            if (!partidaRecuperada) {
+                authThread.join();
+
+                jugadores = authThread.getJugadores();
+                partida.setJugadores(jugadores);
+            }
 
             inicializarConsumidorDeMovimientosDeJugadores();
             inicializarProductorDeMapa();
             
-            // Imprimir que la partida comenzará ahora.
+            System.out.println("La partida con id >>> " + idPartida + " <<< ha comenzado.");
             gestionarPartida();
+            System.out.println("La partida con id >>> " + idPartida + " <<< ha finalizado.");
+
+            ArrayList<String> ganadores = new ArrayList<>();
+
+            if (jugadores.size() == 1) {
+                System.out.println("El jugador >>> " + jugadores.get(jugadores.keySet().toArray()[0]).getAlias() + " <<< ha ganado.");
+                ganadores.add(jugadores.get(jugadores.keySet().toArray()[0]).getAlias());
+                coleccionUsuarios.updateOne(new Document("alias", jugadores.get(jugadores.keySet().toArray()[0]).getAlias()), new Document("$set", new Document("nivel", jugadores.get(jugadores.keySet().toArray()[0]).getNivel())));
+            }
+            else {
+                Jugador jugadorConMayorNivel = null;
+
+                for (String j : jugadores.keySet()) {
+                    Jugador currentPlayer = jugadores.get(j);
+
+                    if (jugadorConMayorNivel == null || jugadorConMayorNivel.getNivel() < currentPlayer.getNivel()) {
+                        jugadorConMayorNivel = currentPlayer;
+                    }
+
+                    coleccionUsuarios.updateOne(new Document("alias", currentPlayer.getAlias()), new Document("$set", new Document("nivel", currentPlayer.getNivel())));
+                }
+
+                ArrayList<Jugador> jugadoresConMayorNivel = new ArrayList<>();
+
+                for (String j : jugadores.keySet()) {
+                    Jugador currentPlayer = jugadores.get(j);
+
+                    if (jugadorConMayorNivel.getNivel() == currentPlayer.getNivel() && jugadorConMayorNivel.getToken() != currentPlayer.getToken()) {
+                        jugadoresConMayorNivel.add(currentPlayer);
+                    }
+                }
+
+                if (jugadoresConMayorNivel.size() == 0) {
+                    System.out.println("El jugador >>> " + jugadorConMayorNivel.getAlias() + " <<< ha ganado.");
+                    ganadores.add(jugadorConMayorNivel.getAlias());
+                }
+                else {
+                    System.out.println("Ha habido un empate entre los jugadores: ");
+                    System.out.println(">>> " + jugadorConMayorNivel.getAlias() + " <<<");
+
+                    for (Jugador j : jugadoresConMayorNivel) {
+                        System.out.println(">>> " + j.getAlias() + " <<<");
+                        ganadores.add(j.getAlias());
+                    }
+                }
+            }
+
+            mapProducer.send(new ProducerRecord<String,String>("MAP", getGameStateAsJSONString(ganadores)));
+            saveGameStateToFile(ganadores);
 
             npcAuthHandler.stopThread();
             playerMovementsConsumer.close();
             mapProducer.close();
+            cliente.close();
         } catch (InterruptedException e) {
             System.out.println("No se puede esperar al hilo de autenticación porque se ha interrumpido.");
         }
