@@ -125,9 +125,10 @@ class Player:
                 if self.partida:
                     break
                 if (time.time() - last_time)>10:
-                    print(bcolors.WARNING+"Servidor no responde"+bcolors.ENDC)
-                    time.sleep(3)
-                    break
+                    print(bcolors.WARNING+"Servidor no responde: intentando reconectar"+bcolors.ENDC)
+                    reconnect_time = time.time()
+                    if (time.time()-last_time)>30:
+                        break
                 if self.muerto:
                     break
                 msg_pack=self._consumer.poll()
