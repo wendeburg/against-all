@@ -346,6 +346,7 @@ class Player:
 
     def play(self):
         try:
+            self.muerto=False
             receive_kafka = threading.Thread(target=self.start_read)
             receive_kafka.start()
             send_kafka = threading.Thread(target=self.start_write)
