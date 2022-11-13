@@ -283,6 +283,7 @@ public class Game {
                 //mapa.get(nuevaPos.getFila()).get(nuevaPos.getColumna()).addColocalble(new EspacioVacio());
 
                 colocablesAEliminar.add(c);
+                nuevosColocalbesEnCelda.add(new EspacioVacio());
                 jugadorMuerto = true;
             }
             else if (c instanceof Alimento) {
