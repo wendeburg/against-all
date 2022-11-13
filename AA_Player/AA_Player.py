@@ -125,6 +125,7 @@ class Player:
                 if self.partida:
                     break
                 if (time.time() - last_time)>10:
+                    os.system("cls||clear")
                     print(bcolors.WARNING+"Servidor no responde: intentando reconectar"+bcolors.ENDC)
                     if (time.time()-last_time)>30:
                         break
