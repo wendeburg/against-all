@@ -90,7 +90,6 @@ if (len(sys.argv)==3):
     except Exception as exc:
         
         print("ERROR:",exc)
-        time.sleep(4)
         os._exit(os.EX_OK)
     
 
