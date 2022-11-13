@@ -26,6 +26,12 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
+import org.bson.Document;
+
+import com.mongodb.client.*;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+
 import Game.Ciudad;
 import Game.Coordenada;
 import Game.Jugador;
@@ -51,8 +57,10 @@ public class GameHandler extends Thread {
     private HashMap<String, Jugador> NPCs;
     private Game partida;
     private String idPartida;
+    private final MongoCollection<Document> coleccionUsuarios;
+    private final MongoClient cliente;
 
-    public GameHandler(String ipBroker, int puertoBroker, String archivoGuardarEstadoPartida, JSONObject estadoPartida, RandomTokenGenerator tokenGenerator) throws Exception {
+    public GameHandler(String ipBroker, int puertoBroker, String archivoGuardarEstadoPartida, JSONObject estadoPartida, RandomTokenGenerator tokenGenerator, String ipDB, int puertoDB) throws Exception {
         this.authThread = null;
         this.ipBroker = ipBroker;
         this.puertoBroker = puertoBroker;
@@ -69,7 +77,11 @@ public class GameHandler extends Thread {
         initNPCs((JSONObject) estadoPartida.get("npcs"));
         initCities((JSONObject) estadoPartida.get("ciudades"));
 
-        this.partida = new Game((JSONArray) estadoPartida.get("mapa"), jugadores, NPCs, ciudades);
+        cliente = MongoClients.create("mongodb://" + ipDB + ":" + puertoDB);
+        MongoDatabase db = cliente.getDatabase("against-all-db");
+        coleccionUsuarios = db.getCollection("users");
+
+        this.partida = new Game((JSONArray) estadoPartida.get("mapa"), jugadores, NPCs, ciudades, coleccionUsuarios);
     }
 
     private void initPlayers(JSONObject jugadoresJSON) throws NumberFormatException {
@@ -127,7 +139,7 @@ public class GameHandler extends Thread {
         }
     }
 
-    public GameHandler(AuthenticationHandler authThread, String ipBroker, int puertoBroker, String ipServidorCLima, int puertoServidorClima, String archivoCiudades, String archivoGuardarEstadoPartida, RandomTokenGenerator tokenGenerator) {
+    public GameHandler(AuthenticationHandler authThread, String ipBroker, int puertoBroker, String ipServidorCLima, int puertoServidorClima, String archivoCiudades, String archivoGuardarEstadoPartida, RandomTokenGenerator tokenGenerator, String ipDB, int puertoDB) {
         this.partidaRecuperada = false;
         this.authThread = authThread;
         this.ipBroker = ipBroker;
@@ -146,7 +158,11 @@ public class GameHandler extends Thread {
             ciudades.add(new Ciudad());
         }
 
-        this.partida = new Game(NPCs);
+        cliente = MongoClients.create("mongodb://" + ipDB + ":" + puertoDB);
+        MongoDatabase db = cliente.getDatabase("against-all-db");
+        coleccionUsuarios = db.getCollection("users");
+
+        this.partida = new Game(NPCs, coleccionUsuarios);
     }
 
     private String leeSocket(Socket socketCliente) throws IOException {
@@ -334,6 +350,10 @@ public class GameHandler extends Thread {
             lastMovementsLogger.remove(j.getToken());
             jugadores.remove(j.getAlias());
             partida.removePlayerFromMap(j);
+
+            if (!j.getIsNPC()) {
+                coleccionUsuarios.updateOne(new Document("alias", j.getAlias()), new Document("$set", new Document("nivel", j.getNivel())));
+            }
         }
     }
 
@@ -523,13 +543,14 @@ public class GameHandler extends Thread {
             
             System.out.println("La partida con id >>> " + idPartida + " <<< ha comenzado.");
             gestionarPartida();
-            System.out.println("La partida con id >>> " + idPartida + " <<< ha finalizado.\n");
+            System.out.println("La partida con id >>> " + idPartida + " <<< ha finalizado.");
 
             ArrayList<String> ganadores = new ArrayList<>();
 
             if (jugadores.size() == 1) {
                 System.out.println("El jugador >>> " + jugadores.get(jugadores.keySet().toArray()[0]).getAlias() + " <<< ha ganado.");
                 ganadores.add(jugadores.get(jugadores.keySet().toArray()[0]).getAlias());
+                coleccionUsuarios.updateOne(new Document("alias", jugadores.get(jugadores.keySet().toArray()[0]).getAlias()), new Document("$set", new Document("nivel", jugadores.get(jugadores.keySet().toArray()[0]).getNivel())));
             }
             else {
                 Jugador jugadorConMayorNivel = null;
@@ -540,6 +561,8 @@ public class GameHandler extends Thread {
                     if (jugadorConMayorNivel == null || jugadorConMayorNivel.getNivel() < currentPlayer.getNivel()) {
                         jugadorConMayorNivel = currentPlayer;
                     }
+
+                    coleccionUsuarios.updateOne(new Document("alias", currentPlayer.getAlias()), new Document("$set", new Document("nivel", currentPlayer.getNivel())));
                 }
 
                 ArrayList<Jugador> jugadoresConMayorNivel = new ArrayList<>();
@@ -573,6 +596,7 @@ public class GameHandler extends Thread {
             npcAuthHandler.stopThread();
             playerMovementsConsumer.close();
             mapProducer.close();
+            cliente.close();
         } catch (InterruptedException e) {
             System.out.println("No se puede esperar al hilo de autenticación porque se ha interrumpido.");
         }

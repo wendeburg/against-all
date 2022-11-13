@@ -8,6 +8,12 @@ import java.util.Random;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
+import org.bson.Document;
+
+import com.mongodb.client.*;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+
 public class Game {
     private ArrayList<ArrayList<Celda>> mapa;
     private final int tamanoMapa = 20;
@@ -16,11 +22,13 @@ public class Game {
     private HashMap<String, Jugador> jugadores;
     private HashMap<String, Jugador> NPCs;
     private ArrayList<Ciudad> ciudades;
+    private final MongoCollection<Document> coleccionUsuarios;
 
-    public Game(JSONArray mapaJSON, HashMap<String, Jugador> jugadores, HashMap<String, Jugador> NPCs, ArrayList<Ciudad> ciudades) throws Exception {
+    public Game(JSONArray mapaJSON, HashMap<String, Jugador> jugadores, HashMap<String, Jugador> NPCs, ArrayList<Ciudad> ciudades, MongoCollection<Document> coleccionUsuarios) throws Exception {
         this.NPCs = NPCs;
         this.jugadores = jugadores;
         this.ciudades = ciudades;
+        this.coleccionUsuarios = coleccionUsuarios;
 
         mapFromJSON(mapaJSON);
     }
@@ -81,8 +89,9 @@ public class Game {
         return null;
     }
 
-    public Game(HashMap<String, Jugador> NPCs) {
+    public Game(HashMap<String, Jugador> NPCs, MongoCollection<Document> coleccionUsuarios) {
         this.NPCs = NPCs;
+        this.coleccionUsuarios = coleccionUsuarios;
         initMap();
     }
 
@@ -262,6 +271,7 @@ public class Game {
                 }
 
                 jugadores.remove(jugador.getAlias());
+                coleccionUsuarios.updateOne(new Document("alias", jugador.getAlias()), new Document("$set", new Document("nivel", jugador.getNivel())));
 
                 //mapa.get(nuevaPos.getFila()).get(nuevaPos.getColumna()).removeElementAt(i);
                 //mapa.get(nuevaPos.getFila()).get(nuevaPos.getColumna()).addColocalble(new EspacioVacio());
@@ -301,6 +311,7 @@ public class Game {
                     }
                     else {
                         jugadores.remove(adversario.getAlias());
+                        coleccionUsuarios.updateOne(new Document("alias", adversario.getAlias()), new Document("$set", new Document("nivel", adversario.getNivel())));
                     }
 
                     jugador.setPosicion(nuevaPos);
@@ -316,6 +327,7 @@ public class Game {
                     }
                     else {
                         jugadores.remove(jugador.getAlias());
+                        coleccionUsuarios.updateOne(new Document("alias", jugador.getAlias()), new Document("$set", new Document("nivel", jugador.getNivel())));
                     }
                     
                     jugadorMuerto = true;

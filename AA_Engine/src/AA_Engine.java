@@ -50,81 +50,79 @@ class AA_Engine {
             BufferedReader consoleReader = new BufferedReader(new InputStreamReader(System.in));
             String chosenOption = "";
 
-            while (!chosenOption.equals("3")) {
-                System.out.println("\n>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<");
-                System.out.println(">>>>>> AGAINST ALL ENGINE <<<<<<");
-                System.out.println(">>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<\n");
+            System.out.println("\n>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<");
+            System.out.println(">>>>>> AGAINST ALL ENGINE <<<<<<");
+            System.out.println(">>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<\n");
+
+            System.out.println("Opciones:");
+            System.out.println("1. Iniciar partida.");
+            System.out.println("2. Recuperar última partida.");
+            System.out.println("3. Salir.");
+
+            try {
+                chosenOption = consoleReader.readLine();
+            }
+            catch (IOException e) {
+                System.out.println("Ha habido un error al leer de consola.");
+            }
+
+            if (chosenOption.equals("1")) {
+                RandomTokenGenerator tokenGenerator = new RandomTokenGenerator();
+
+                AuthenticationHandler authThread = new AuthenticationHandler(puerto, maxJugadores, ipDB, puertoDB, tokenGenerator);
+                authThread.start();
+                
+                GameHandler gameThread = new GameHandler(authThread, ipBroker, puertoBroker, ipServidorClima, puertoServidorClima, archivoCiudades, archivoGuardadoEstadoPartida, tokenGenerator, ipDB, puertoDB);
+                gameThread.start();
     
-                System.out.println("Opciones:");
-                System.out.println("1. Iniciar partida.");
-                System.out.println("2. Recuperar última partida.");
-                System.out.println("3. Salir.");
-
                 try {
-                    chosenOption = consoleReader.readLine();
+                    gameThread.join();
+                } catch (InterruptedException e) {
+                    System.out.println("No se puede esperar al hilo del juego porque se ha interrumpido.");
                 }
-                catch (IOException e) {
-                    System.out.println("Ha habido un error al leer de consola.");
-                }
+            }
+            else if (chosenOption.equals("2")) {
+                Path filePath = Path.of("./estado_ultima_partida.json");
+                String content;
+                try {
+                    content = Files.readString(filePath);
 
-                if (chosenOption.equals("1")) {
-                    RandomTokenGenerator tokenGenerator = new RandomTokenGenerator();
+                    JSONParser parser = new JSONParser();
 
-                    AuthenticationHandler authThread = new AuthenticationHandler(puerto, maxJugadores, ipDB, puertoDB, tokenGenerator);
-                    authThread.start();
-                    
-                    GameHandler gameThread = new GameHandler(authThread, ipBroker, puertoBroker, ipServidorClima, puertoServidorClima, archivoCiudades, archivoGuardadoEstadoPartida, tokenGenerator);
-                    gameThread.start();
-        
-                    try {
-                        gameThread.join();
-                    } catch (InterruptedException e) {
-                        System.out.println("No se puede esperar al hilo del juego porque se ha interrumpido.");
-                    }
-                }
-                else if (chosenOption.equals("2")) {
-                    Path filePath = Path.of("./estado_ultima_partida.json");
-                    String content;
-                    try {
-                        content = Files.readString(filePath);
+                    JSONObject estadoUltimaPartida = (JSONObject) parser.parse(content);
 
-                        JSONParser parser = new JSONParser();
+                    int resultadoVerificacion = verifySavedGameState(estadoUltimaPartida);
 
-                        JSONObject estadoUltimaPartida = (JSONObject) parser.parse(content);
-
-                        int resultadoVerificacion = verifySavedGameState(estadoUltimaPartida);
-
-                        if (resultadoVerificacion == 0) {
-                            GameHandler gameThread;
-                            RandomTokenGenerator tokenGenerator = new RandomTokenGenerator();
-                            try {
-                                gameThread = new GameHandler(ipBroker, puertoBroker, archivoGuardadoEstadoPartida, estadoUltimaPartida, tokenGenerator);
-                                gameThread.start();
-                            } catch (Exception e) {
-                                System.out.println("Ha habido un error al intentar recuperar la partida. Razón: " + e.getMessage()); // Error en el archivo->"Los datos del archivo son incorrectos."
-                            }
+                    if (resultadoVerificacion == 0) {
+                        GameHandler gameThread;
+                        RandomTokenGenerator tokenGenerator = new RandomTokenGenerator();
+                        try {
+                            gameThread = new GameHandler(ipBroker, puertoBroker, archivoGuardadoEstadoPartida, estadoUltimaPartida, tokenGenerator, ipDB, puertoDB);
+                            gameThread.start();
+                        } catch (Exception e) {
+                            System.out.println("Ha habido un error al intentar recuperar la partida. Razón: " + e.getMessage()); // Error en el archivo->"Los datos del archivo son incorrectos."
                         }
-                        else {
-                            String razon = "";
-                            switch (resultadoVerificacion) {
-                                case 1: razon = "El formato del archivo no es correcto.";
-                                        break;
-                                case 2: razon = "La partida ya ha finalizado.";
-                                        break;
-                                case 3: razon = "Los datos del archivo son incorrectos.";
-                            }
-
-                            System.out.println("No se peude recuperar la última partida del archivo " + archivoGuardadoEstadoPartida + ". Razón: " + razon);
-                        }
-                    } catch (IOException e) {
-                        System.out.println("No se peude recuperar la última partida del archivo " + archivoGuardadoEstadoPartida + ". Razón: No se puede leer el archivo.");
-                    } catch (ParseException e) {
-                        System.out.println("No se peude recuperar la última partida del archivo " + archivoGuardadoEstadoPartida + ". Razón: El formato del archivo no es correcto.");
                     }
+                    else {
+                        String razon = "";
+                        switch (resultadoVerificacion) {
+                            case 1: razon = "El formato del archivo no es correcto.";
+                                    break;
+                            case 2: razon = "La partida ya ha finalizado.";
+                                    break;
+                            case 3: razon = "Los datos del archivo son incorrectos.";
+                        }
+
+                        System.out.println("No se peude recuperar la última partida del archivo " + archivoGuardadoEstadoPartida + ". Razón: " + razon);
+                    }
+                } catch (IOException e) {
+                    System.out.println("No se peude recuperar la última partida del archivo " + archivoGuardadoEstadoPartida + ". Razón: No se puede leer el archivo.");
+                } catch (ParseException e) {
+                    System.out.println("No se peude recuperar la última partida del archivo " + archivoGuardadoEstadoPartida + ". Razón: El formato del archivo no es correcto.");
                 }
-                else if (!chosenOption.equals("3")) {
-                    System.out.println("Opción no conocida. Inténtalo de nuevo.");
-                }
+            }
+            else if (!chosenOption.equals("3")) {
+                System.out.println("Opción no conocida.");
             }
             
             System.exit(0);
