@@ -164,11 +164,13 @@ class Player:
                         string_mapa=""
                         string_mapa+=("Nivel: "+str(jugador["nivel"])+"\n")
                         string_mapa+=(cities[0]+': '+str(message['ciudades'][cities[0]])+ '             '+cities[1]+': '+ str(message['ciudades'][cities[1]])+"\n")
-                        string_mapa+=('---------------------|---------------------'+"\n")
+                        string_mapa+=('---------------------|----------------------'+"\n")
                         count = 0
                         for fila in map:
                             string_mapa+=('|')
+                            count_col=0
                             for elem in fila:
+                                count_col+=1
                                 string_mapa+=(' ')
                                 if len(elem) > 1:
                                     if elem[0]==1:
@@ -191,12 +193,15 @@ class Player:
                                                 string_mapa+=(bcolors.FAIL + str(npcs[elem[0]]) + bcolors.ENDC)
                                             else:
                                                 string_mapa+=(bcolors.FAIL + 'E' + bcolors.ENDC)
+                                if count_col==10:
+                                    string_mapa+=('|')
                             count+=1
                             if count==10:
-                                string_mapa+=(' -'+"\n")
+                                string_mapa+=(' |'+"\n")
+                                string_mapa+=('---------------------|----------------------'+"\n")
                             else:
                                 string_mapa+=(' |'+"\n")
-                        string_mapa+=('---------------------|---------------------'+"\n")
+                        string_mapa+=('---------------------|----------------------'+"\n")
                         string_mapa+=(cities[2]+': '+str(message['ciudades'][cities[2]])+ '             '+cities[3]+': '+ str(message['ciudades'][cities[3]])+"\n")
                         print(string_mapa)
                         message_count += 1
