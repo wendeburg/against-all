@@ -267,6 +267,12 @@ public class Game {
 
             if (c instanceof Mina) {
                 if (jugador.getIsNPC()) {
+                    if (colocablesEnNuevaPos.getColocables().size() == 1) {
+                        nuevosColocalbesEnCelda.add(jugador);
+                        jugador.setPosicion(nuevaPos);
+                        jugadorMovido = true;
+                    }
+
                     continue;
                 }
 
@@ -281,6 +287,12 @@ public class Game {
             }
             else if (c instanceof Alimento) {
                 if (jugador.getIsNPC()) {
+                    if (colocablesEnNuevaPos.getColocables().size() == 1) {
+                        nuevosColocalbesEnCelda.add(jugador);
+                        jugador.setPosicion(nuevaPos);
+                        jugadorMovido = true;
+                    }
+
                     continue;
                 }
 
