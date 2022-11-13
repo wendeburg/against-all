@@ -267,6 +267,12 @@ public class Game {
 
             if (c instanceof Mina) {
                 if (jugador.getIsNPC()) {
+                    if (colocablesEnNuevaPos.getColocables().size() == 1) {
+                        nuevosColocalbesEnCelda.add(jugador);
+                        jugador.setPosicion(nuevaPos);
+                        jugadorMovido = true;
+                    }
+
                     continue;
                 }
 
@@ -277,10 +283,17 @@ public class Game {
                 //mapa.get(nuevaPos.getFila()).get(nuevaPos.getColumna()).addColocalble(new EspacioVacio());
 
                 colocablesAEliminar.add(c);
+                nuevosColocalbesEnCelda.add(new EspacioVacio());
                 jugadorMuerto = true;
             }
             else if (c instanceof Alimento) {
                 if (jugador.getIsNPC()) {
+                    if (colocablesEnNuevaPos.getColocables().size() == 1) {
+                        nuevosColocalbesEnCelda.add(jugador);
+                        jugador.setPosicion(nuevaPos);
+                        jugadorMovido = true;
+                    }
+
                     continue;
                 }
 
