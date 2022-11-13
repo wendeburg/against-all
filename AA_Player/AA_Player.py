@@ -155,12 +155,9 @@ class Player:
                         jugador = message["jugadores"][self.alias]
                         map = message['mapa']
                         cities = list(message['ciudades'].keys())
-                        jugadores=[]
-                        for j in message["jugadores"]:
-                            jugadores.append(message["jugadores"][j]["token"])
-                        npcs = []
-                        for n in message["npcs"]:
-                            npcs.append(message["npcs"][n]["token"])
+                        npcs = {}
+                        for n in message["npcs"].values():
+                            npcs[n["token"]] = n["nivel"]
                         os.system("cls||clear")
                         #print('Message', message_count, ':')
                         string_mapa=""
@@ -174,7 +171,7 @@ class Player:
                                 string_mapa+=(' ')
                                 if len(elem) > 1:
                                     if elem[0]==1:
-                                        string_mapa+=(bcolors.FAIL + npcs[elem[1]]['nivel'] + bcolors.ENDC)
+                                        string_mapa+=(bcolors.FAIL + str(npcs[elem[1]]) + bcolors.ENDC)
                                     else:
                                         string_mapa+=(bcolors.WARNING + 'M' + bcolors.ENDC)
                                 else:
@@ -189,10 +186,10 @@ class Player:
                                             string_mapa+=(bcolors.OKBLUE + 'P' + bcolors.ENDC)
                                         case _:
                                             #string_mapa+=(bcolors.FAIL + 'E' + bcolors.ENDC)
-                                            if elem[0] in jugadores:
-                                                string_mapa+=(bcolors.FAIL + 'E' + bcolors.ENDC)
+                                            if elem[0] in npcs:
+                                                string_mapa+=(bcolors.FAIL + str(npcs[elem[0]]) + bcolors.ENDC)
                                             else:
-                                                string_mapa+=(bcolors.FAIL + npcs[elem[1]]['nivel'] + bcolors.ENDC)
+                                                string_mapa+=(bcolors.FAIL + 'E' + bcolors.ENDC)
                             count+=1
                             if count==10:
                                 string_mapa+=(' -'+"\n")
