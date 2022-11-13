@@ -78,79 +78,86 @@ def unpack(message):
 
 
 def handle_register(conn, addr, op):
-    edit_alias=""
-    alias=""
-    contra=""
-    nivel=""
-    ef=""
-    ec=""
-    send("Alias: ", conn)
-    mongo_client = pymongo.MongoClient("mongodb://"+IP_BD+":"+PORT_BD+"/")
-    db = mongo_client["against-all-db"]
-    players = db["users"]
-    connected = True
-    while connected:
-        msg = conn.recv(2048).decode(FORMAT)
-        if msg[2:] == EOT:
-            connected = False
-        else:
-            if msg[2:] == ENQ:
-                send(ACK, conn)
-            if check_lrc(msg):
-                msg=unpack(msg)
-                print(f" He recibido del cliente [{addr}] el mensaje: {msg}")
-                send(ACK, conn)
-
-                if alias=="":
-                    if op=="reg":
-                        if players.count_documents({"alias": msg}) > 0:
-                            send("ERROR: " + bcolors.FAIL + "Alias duplicado" + bcolors.ENDC, conn)
-                            break
-                        alias=msg
-                        send("Contraseña:", conn)
-                    else:
-                        if players.count_documents({"alias": msg}) == 0:
-                            send("ERROR: " + bcolors.FAIL + "Alias no existe" + bcolors.ENDC, conn)
-                            break
-                        edit_alias=msg
-                        send("Nuevo alias:", conn)
-                        op="reg"
-                elif contra=="":
-                    contra=msg
-                    send("Nivel:", conn)
-                elif nivel=="":
-                    try:
-                        int_msg=int(msg)
-                        nivel=msg
-                    except:
-                        send("Nivel no válido", conn)
-                        break
-                    send("EF:", conn)
-                elif ef=="":
-                    try:
-                        int_msg=int(msg)
-                        ef=msg
-                    except:
-                        send("EF no válido", conn)
-                        break
-                    send("EC:", conn)
-                else:
-                    try:
-                        int_msg=int(msg)
-                        ec=msg
-                    except:
-                        send("EC no válido", conn)
-                        break
-                    send("FIN", conn)
-                    entry={'alias':alias, 'password':contra, 'nivel':nivel, 'ef':ef, 'ec':ec}
-                    if edit_alias=="":
-                        players.insert_one(entry)
-                    else:
-                        players.find_one_and_replace({ "alias" : edit_alias }, entry)
+    try:
+        edit_alias=""
+        alias=""
+        contra=""
+        nivel=""
+        ef=""
+        ec=""
+        send("Alias: ", conn)
+        try:
+            mongo_client = pymongo.MongoClient("mongodb://"+IP_BD+":"+PORT_BD+"/")
+        
+            db = mongo_client["against-all-db"]
+            players = db["users"]
+        except Exception as exc:
+            raise Exception("La base de datos no responde"+str(exc))
+        connected = True
+        while connected:
+            msg = conn.recv(2048).decode(FORMAT)
+            if msg[2:] == EOT:
+                connected = False
             else:
-                print("Ha ocurrido un error con el mensaje")
-                send(NACK, conn)
-    return False
+                if msg[2:] == ENQ:
+                    send(ACK, conn)
+                if check_lrc(msg):
+                    msg=unpack(msg)
+                    #print(f" He recibido del cliente [{addr}] el mensaje: {msg}")
+                    send(ACK, conn)
+
+                    if alias=="":
+                        if op=="reg":
+                            if players.count_documents({"alias": msg}) > 0 and edit_alias=="":
+                                send("ERROR: " + bcolors.FAIL + "Alias duplicado" + bcolors.ENDC, conn)
+                                break
+                            alias=msg
+                            send("Contraseña:", conn)
+                        else:
+                            edit_player = json.loads(msg)
+                            if players.count_documents({"alias": edit_player["alias"]}) == 0:
+                                send("ERROR: " + bcolors.FAIL + "Alias no existe" + bcolors.ENDC, conn)
+                                break
+                            elif players.count_documents({"alias": edit_player["alias"], "password": edit_player["password"]}) == 0:
+                                send("ERROR: " + bcolors.FAIL + "Contraseña incorrecta" + bcolors.ENDC, conn)
+                                break
+                            edit_alias=edit_player["alias"]
+                            send("Nuevo alias:", conn)
+                            op="reg"
+                    elif contra=="":
+                        contra=msg
+                        send("Efecto ante el Frío:", conn)
+                    elif ef=="":
+                        try:
+                            if int(msg)<11 and int(msg)>-11:
+                                ef=msg
+                            else:
+                                raise Exception("El efecto ante el frío debe ser un número entero entre -10 y 10 (incluidos)")
+                        except Exception as exc:
+                            send("EF no válido: " + bcolors.FAIL + str(exc) + bcolors.ENDC, conn)
+                            break
+                        send("Efecto ante el Calor:", conn)
+                    else:
+                        try:
+                            if int(msg)<11 and int(msg)>-11:
+                                ec=msg
+                            else:
+                                raise Exception("El efecto ante el calor debe ser un número entero entre -10 y 10 (incluidos)")
+                        except Exception as exc:
+                            send("EC no válido" + bcolors.FAIL + str(exc) + bcolors.ENDC, conn)
+                            break
+                        send("FIN", conn)
+                        entry={'alias':alias, 'password':contra, 'nivel':'1', 'ef':ef, 'ec':ec}
+                        if edit_alias=="":
+                            players.insert_one(entry)
+                        else:
+                            players.find_one_and_replace({ "alias" : edit_alias }, entry)
+                else:
+                    print("Ha ocurrido un error con el mensaje")
+                    send(NACK, conn)
+        return False
+    except Exception as exc:
+        print("ERROR:",exc)
     
 
 def handle_client(conn, addr):
@@ -185,22 +192,23 @@ def handle_client(conn, addr):
 def start():
     server.listen()
     print(f"[LISTENING] Servidor a la escucha en {SERVER}")
-    CONEX_ACTIVAS = threading.active_count()-1
+    CONEX_ACTIVAS = threading.active_count()//3
     print(CONEX_ACTIVAS)
     while True:
         try:
             conn, addr = server.accept()
-            CONEX_ACTIVAS = threading.active_count()
-            if (CONEX_ACTIVAS <= MAX_CONEXIONES): 
+            CONEX_ACTIVAS = threading.active_count()//3
+            if (CONEX_ACTIVAS <= MAX_CONEXIONES):
+                send(ACK, conn)
                 thread = threading.Thread(target=handle_client, args=(conn, addr))
                 thread.start()
-                print(f"[CONEXIONES ACTIVAS] {CONEX_ACTIVAS}")
-                print("CONEXIONES RESTANTES PARA CERRAR EL SERVICIO", MAX_CONEXIONES-CONEX_ACTIVAS)
+                print(f"/n[CONEXIONES ACTIVAS] {CONEX_ACTIVAS}")
+                print("/nCONEXIONES RESTANTES PARA CERRAR EL SERVICIO", MAX_CONEXIONES-CONEX_ACTIVAS-1)
             else:
+                send(NACK, conn)
                 print("DEMASIADAS CONEXIONES. ESPERANDO A QUE ALGUIEN SE VAYA")
-                conn.send("DEMASIADAS CONEXIONES. Tendrás que esperar a que alguien se vaya".encode(FORMAT))
+                send("DEMASIADAS CONEXIONES. Tendrás que esperar a que alguien se vaya", conn)
                 conn.close()
-                CONEX_ACTUALES = threading.active_count()-1
         except socket.timeout:
             continue
         except Exception as exc:
