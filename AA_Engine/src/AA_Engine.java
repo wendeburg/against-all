@@ -96,6 +96,12 @@ class AA_Engine {
                         try {
                             gameThread = new GameHandler(ipBroker, puertoBroker, archivoGuardadoEstadoPartida, estadoUltimaPartida, tokenGenerator, ipDB, puertoDB);
                             gameThread.start();
+
+                            try {
+                                gameThread.join();
+                            } catch (InterruptedException e) {
+                                System.out.println("No se puede esperar al hilo del juego porque se ha interrumpido.");
+                            }
                         } catch (Exception e) {
                             System.out.println("Ha habido un error al intentar recuperar la partida. Razón: " + e.getMessage()); // Error en el archivo->"Los datos del archivo son incorrectos."
                         }
