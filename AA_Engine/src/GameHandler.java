@@ -4,7 +4,9 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.net.HttpURLConnection;
 import java.net.Socket;
+import java.net.URL;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,16 +38,12 @@ import Game.Ciudad;
 import Game.Coordenada;
 import Game.Jugador;
 import Game.Game;
-import Utils.MessageParser;
-import Utils.MessageParserException;
 import Utils.RandomTokenGenerator;
 
 public class GameHandler extends Thread {
     private final AuthenticationHandler authThread;
     private final String ipBroker;
     private final int puertoBroker;
-    private final String ipServidorClima;
-    private final int puertoServidorClima;
     private final String archivoCiudades;
     private final String archivoGuardarEstadoPartida;
     private final boolean partidaRecuperada;
@@ -64,8 +62,6 @@ public class GameHandler extends Thread {
         this.authThread = null;
         this.ipBroker = ipBroker;
         this.puertoBroker = puertoBroker;
-        this.ipServidorClima = "";
-        this.puertoServidorClima = -1;
         this.archivoCiudades = "";
         this.archivoGuardarEstadoPartida = archivoGuardarEstadoPartida;
         this.partidaRecuperada = true;
@@ -139,13 +135,11 @@ public class GameHandler extends Thread {
         }
     }
 
-    public GameHandler(AuthenticationHandler authThread, String ipBroker, int puertoBroker, String ipServidorCLima, int puertoServidorClima, String archivoCiudades, String archivoGuardarEstadoPartida, RandomTokenGenerator tokenGenerator, String ipDB, int puertoDB) {
+    public GameHandler(AuthenticationHandler authThread, String ipBroker, int puertoBroker, String archivoCiudades, String archivoGuardarEstadoPartida, RandomTokenGenerator tokenGenerator, String ipDB, int puertoDB) {
         this.partidaRecuperada = false;
         this.authThread = authThread;
         this.ipBroker = ipBroker;
         this.puertoBroker = puertoBroker;
-        this.ipServidorClima = ipServidorCLima;
-        this.puertoServidorClima = puertoServidorClima;
         this.archivoCiudades = archivoCiudades;
         this.archivoGuardarEstadoPartida = archivoGuardarEstadoPartida;
         this.tokenGenerator = tokenGenerator;
@@ -175,22 +169,39 @@ public class GameHandler extends Thread {
         dos.writeUTF(mensaje);
     }
 
-    private boolean mandarPeticion(JSONObject res, Socket socketCliente) throws IOException {
-        MessageParser parser = new MessageParser();
-
-        StringBuilder sb = new StringBuilder();
-        sb.append(MessageParser.STXChar);
-        sb.append(res.toString());
-        sb.append(MessageParser.ETXChar);
-        sb.append(parser.getStringLRC(res.toString()));
-
-        escribeSocket(sb.toString(), socketCliente);
-        return true;
+    private JSONObject mandarPeticion(String nombreCiduad) {
+        try {
+            URL enlacePeticion = new URL("https://api.openweathermap.org/data/2.5/weather?q=" + nombreCiduad + "&appid=96e1dac69045891ae2002db2c6a5f6cc&units=metric");
+        
+            HttpURLConnection conn = (HttpURLConnection) enlacePeticion.openConnection();
+            conn.setRequestMethod("GET");
+            conn.connect();
+        
+            if (conn.getResponseCode() != 200) {
+                return new JSONObject();
+            }
+            else {
+                String resStr = "";
+                Scanner scanner = new Scanner(enlacePeticion.openStream());
+            
+                while (scanner.hasNext()) {
+                    resStr += scanner.nextLine();
+                }
+                scanner.close();
+            
+                JSONParser parse = new JSONParser();
+                return (JSONObject) parse.parse(resStr);
+            }
+        }
+        catch (Exception e) {
+            System.out.println("Ha habido un error al hacer la request a OpenWeather.");
+            return new JSONObject();
+        }
     }
 
-    public void guardarCiudad(String nombreCiudad, JSONObject respuesta, int numeroCiudades) {
+    public void guardarCiudad(String nombreCiudad, float temp, int numeroCiudades) {
         ciudades.get(numeroCiudades).setNombre(nombreCiudad);
-        ciudades.get(numeroCiudades).setTemperatura(Integer.parseInt(respuesta.get(nombreCiudad).toString()));
+        ciudades.get(numeroCiudades).setTemperatura(temp);
     }
 
     private ArrayList<String> obtenerCiudades() throws FileNotFoundException {
@@ -209,74 +220,31 @@ public class GameHandler extends Thread {
     }
 
     private void obtenerTemperaturas() throws FileNotFoundException {
-        Socket socketCliente = null;
-        try {
-            socketCliente = new Socket(ipServidorClima, puertoServidorClima);
-        } catch (Exception e) {
-            System.out.println("No se pudo conectar al servidor del clima. Usando ciudades por defecto.");
-        }
-        MessageParser parser = new MessageParser();
         ArrayList<String> nombreCiudades = obtenerCiudades();
         int temperaturasObtenidas = 0;
     
-        try {
-            if (socketCliente == null) {
-                return;
+        for (String nombreCiudad : nombreCiudades) {
+            if (temperaturasObtenidas >= 4) {
+                // Ya se tienen todas las temperaturas necesarias.
+                break;
             }
 
-            String respuestaStr = "";
+            JSONObject respuestaJSON = mandarPeticion(nombreCiudad);
 
-            escribeSocket(Character.toString(MessageParser.ENQChar), socketCliente);
-            respuestaStr = leeSocket(socketCliente);
+            if (respuestaJSON.size() == 0) {
+                // La ciudad no existe o ha ocurrido un error y no hay temperatura.
+                continue; 
+            }
+            else {
+                float temp = Float.parseFloat(((JSONObject) respuestaJSON.get("main")).get("temp").toString());
 
-            if (!respuestaStr.equals(Character.toString(MessageParser.ACKChar))) {
-                // Se ha recibido NAK al enviar ENQ. Parar peticiones y jugar con ciudades por defecto.
-                System.out.println("Error en al iniciar la comunicación con el servidor del clima. Usando ciudades por defecto.");
-                return;
+                guardarCiudad(nombreCiudad, temp, temperaturasObtenidas);
+                temperaturasObtenidas++;
             }
+        }
 
-            for (String nombreCiudad : nombreCiudades) {
-                if (temperaturasObtenidas >= 4) {
-                    // Ya se tienen todas las temperaturas necesarias.
-                    break;
-                }
-    
-                JSONObject respuestaJSON = null;
-                JSONObject peticion = new JSONObject();
-                peticion.put("ciudad", nombreCiudad);
-    
-                mandarPeticion(peticion, socketCliente);
-                respuestaStr = leeSocket(socketCliente);
-    
-                if (respuestaStr.equals(Character.toString(MessageParser.NAKChar))) {
-                    // La ciudad no existe y no hay temperatura.
-                    continue; 
-                }
-                else if (respuestaStr.equals(Character.toString(MessageParser.ACKChar))) {
-                    try {
-                        respuestaJSON = parser.parseMessage(leeSocket(socketCliente));
-                        guardarCiudad(nombreCiudad, respuestaJSON, temperaturasObtenidas);
-                        temperaturasObtenidas++;
-                        escribeSocket(Character.toString(MessageParser.ACKChar), socketCliente);
-                    } catch (MessageParserException e) {
-                        // Hubo un error al recibir la temperatura de esta ciudad, pasar a la siguiente.
-                        continue;
-                    }
-                }
-            }
-    
-            escribeSocket(Character.toString(MessageParser.EOTChar), socketCliente);
-            respuestaStr = leeSocket(socketCliente);
-    
-            if (respuestaStr.equals(Character.toString(MessageParser.EOTChar))) {
-                socketCliente.close();
-            }
-
-            if (temperaturasObtenidas < 4) {
-                System.out.println("No se pudieron obtener 4 ciudades. Algunas tendrán valores por defecto.");
-            }
-        } catch (IOException e) {
-            System.out.println("Hubo una interrupción en la conexión con el servidor del clima. Algunas ciudades puede que tengan valores por defecto.");
+        if (temperaturasObtenidas < 4) {
+            System.out.println("No se pudieron obtener 4 ciudades. Algunas tendrán valores por defecto.");
         }
     }
 

@@ -15,17 +15,15 @@ class AA_Engine {
     private AA_Engine() {}
 
     public static void main(String[] args) {
-        if (args.length < 10) {
+        if (args.length < 8) {
             System.out.println("Error faltan argumentos.");
-            System.out.println("Uso: java -jar AA_Engine.jar puerto max_jugadores ip_sv_clima puerto_sv_clima ip_broker puerto_broker ip_bd puerto_bd archivo_con_ciudades archivo_para_guardar_partida");
+            System.out.println("Uso: java -jar AA_Engine.jar puerto max_jugadores ip_broker puerto_broker ip_bd puerto_bd archivo_con_ciudades archivo_para_guardar_partida");
 
             System.exit(-1);
         }
 
         int puerto;
         int maxJugadores;
-        String ipServidorClima;
-        int puertoServidorClima;
         String ipBroker;
         int puertoBroker;
         String ipDB;
@@ -35,14 +33,12 @@ class AA_Engine {
         try {
             puerto = Integer.parseInt(args[0]);
             maxJugadores = Integer.parseInt(args[1]);
-            ipServidorClima = args[2];
-            puertoServidorClima = Integer.parseInt(args[3]);
-            ipBroker = args[4];
-            puertoBroker = Integer.parseInt(args[5]);
-            ipDB = args[6];
-            puertoDB = Integer.parseInt(args[7]);
-            archivoCiudades = args[8];
-            archivoGuardadoEstadoPartida = args[9];
+            ipBroker = args[2];
+            puertoBroker = Integer.parseInt(args[3]);
+            ipDB = args[4];
+            puertoDB = Integer.parseInt(args[5]);
+            archivoCiudades = args[6];
+            archivoGuardadoEstadoPartida = args[7];
 
             BufferedReader consoleReader = new BufferedReader(new InputStreamReader(System.in));
             String chosenOption = "";
@@ -69,7 +65,7 @@ class AA_Engine {
                 AuthenticationHandler authThread = new AuthenticationHandler(puerto, maxJugadores, ipDB, puertoDB, tokenGenerator);
                 authThread.start();
                 
-                GameHandler gameThread = new GameHandler(authThread, ipBroker, puertoBroker, ipServidorClima, puertoServidorClima, archivoCiudades, archivoGuardadoEstadoPartida, tokenGenerator, ipDB, puertoDB);
+                GameHandler gameThread = new GameHandler(authThread, ipBroker, puertoBroker, archivoCiudades, archivoGuardadoEstadoPartida, tokenGenerator, ipDB, puertoDB);
                 gameThread.start();
     
                 try {
@@ -133,7 +129,7 @@ class AA_Engine {
         }
         catch (NumberFormatException e) {
             System.out.println("Error en tipo de argumentos.");
-            System.out.println("Uso: java -jar AA_Engine.jar puerto max_jugadores ip_sv_clima puerto_sv_clima ip_broker puerto_broker ip_bd puerto_bd archivo_con_ciudades archivo_para_guardar_partida");
+            System.out.println("Uso: java -jar AA_Engine.jar puerto max_jugadores ip_broker puerto_broker ip_bd puerto_bd archivo_con_ciudades archivo_para_guardar_partida");
 
             System.exit(-1);
         }
