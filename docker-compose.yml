@@ -15,14 +15,24 @@ services:
     depends_on:
       - zookeeper
     ports:
-      - 29092:29092
+      - 9092:9092
+      - 9093:9093
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: SSL://kafka:29093, SSL_HOST://localhost:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: SSL:SSL,SSL_HOST:SSL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_SSL_KEYSTORE_FILENAME: kafka.keystore.jks
+      KAFKA_SSL_KEYSTORE_CREDENTIALS: ca-password
+      KAFKA_SSL_KEY_CREDENTIALS: ca-password
+      KAFKA_SSL_TRUSTSTORE_FILENAME: all.truststore.jks
+      KAFKA_SSL_TRUSTSTORE_CREDENTIALS: ca-password
+      KAFKA_SECURITY_INTER_BROKER_PROTOCOL: SSL
+      KAFKA_SSL_CLIENT_AUTH: requested
+      KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: " "
+    volumes:
+      - ./secrets/:/etc/kafka/secrets
   mongo:
     image: mongo:latest
     container_name: mongodb
