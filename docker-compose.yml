@@ -15,7 +15,6 @@ services:
     depends_on:
       - zookeeper
     ports:
-      - 9092:9092
       - 9093:9093
     environment:
       KAFKA_BROKER_ID: 1
