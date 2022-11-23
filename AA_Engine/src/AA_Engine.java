@@ -1,4 +1,5 @@
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
@@ -19,6 +20,14 @@ class AA_Engine {
             System.out.println("Error faltan argumentos.");
             System.out.println("Uso: java -jar AA_Engine.jar puerto max_jugadores ip_broker puerto_broker ip_bd puerto_bd archivo_con_ciudades archivo_para_guardar_partida");
 
+            System.exit(-1);
+        }
+
+        File trustStore = new File ("/secrets/all.truststore.jks");
+
+        if (trustStore.getAbsoluteFile().exists()) {
+            System.out.println("Error: No se ha encontrado el archivo all.truststore.jks a.");
+            
             System.exit(-1);
         }
 

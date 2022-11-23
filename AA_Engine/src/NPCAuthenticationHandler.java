@@ -54,6 +54,10 @@ public class NPCAuthenticationHandler extends Thread {
         p.setProperty(ConsumerConfig.GROUP_ID_CONFIG, "aaengine-" + UUID.randomUUID().toString());
         p.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
         p.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, Boolean.toString(true));
+        p.setProperty("security.protocol", "SSL");
+        p.setProperty("ssl.truststore.location", "./secrets/all.truststore.jks");
+        p.setProperty("ssl.truststore.password", "against-all-truststore-password");
+        p.setProperty("ssl.endpoint.identification.algorithm", "");
 
         authRequestConsumer = new KafkaConsumer<>(p);
         authRequestConsumer.subscribe(Arrays.asList("NPCAUTHREQUEST"));
@@ -64,6 +68,10 @@ public class NPCAuthenticationHandler extends Thread {
         p.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, ipBroker + ":" + puertoBroker);
         p.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         p.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        p.setProperty("security.protocol", "SSL");
+        p.setProperty("ssl.truststore.location", "./secrets/all.truststore.jks");
+        p.setProperty("ssl.truststore.password", "against-all-truststore-password");
+        p.setProperty("ssl.endpoint.identification.algorithm", "");
 
         tokenOfferProducer = new KafkaProducer<>(p);
     }
