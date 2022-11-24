@@ -58,6 +58,9 @@ public class NPCAuthenticationHandler extends Thread {
         p.setProperty("ssl.truststore.location", "./secrets/all.truststore.jks");
         p.setProperty("ssl.truststore.password", "against-all-truststore-password");
         p.setProperty("ssl.endpoint.identification.algorithm", "");
+        p.setProperty("ssl.keystore.location", "./secrets/engine.keystore.jks");
+        p.setProperty("ssl.keystore.password", "against-all-aa-engine-password");
+        p.setProperty("ssl.key.password", "against-all-aa-engine-password");
 
         authRequestConsumer = new KafkaConsumer<>(p);
         authRequestConsumer.subscribe(Arrays.asList("NPCAUTHREQUEST"));
@@ -72,6 +75,9 @@ public class NPCAuthenticationHandler extends Thread {
         p.setProperty("ssl.truststore.location", "./secrets/all.truststore.jks");
         p.setProperty("ssl.truststore.password", "against-all-truststore-password");
         p.setProperty("ssl.endpoint.identification.algorithm", "");
+        p.setProperty("ssl.keystore.location", "./secrets/engine.keystore.jks");
+        p.setProperty("ssl.keystore.password", "against-all-aa-engine-password");
+        p.setProperty("ssl.key.password", "against-all-aa-engine-password");
 
         tokenOfferProducer = new KafkaProducer<>(p);
     }

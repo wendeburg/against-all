@@ -256,6 +256,13 @@ public class GameHandler extends Thread {
         p.setProperty(ConsumerConfig.GROUP_ID_CONFIG, "aaengine-" + UUID.randomUUID().toString());
         p.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
         p.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, Boolean.toString(true));
+        p.setProperty("security.protocol", "SSL");
+        p.setProperty("ssl.truststore.location", "./secrets/all.truststore.jks");
+        p.setProperty("ssl.truststore.password", "against-all-truststore-password");
+        p.setProperty("ssl.endpoint.identification.algorithm", "");
+        p.setProperty("ssl.keystore.location", "./secrets/engine.keystore.jks");
+        p.setProperty("ssl.keystore.password", "against-all-aa-engine-password");
+        p.setProperty("ssl.key.password", "against-all-aa-engine-password");
 
         playerMovementsConsumer = new KafkaConsumer<>(p);
         playerMovementsConsumer.subscribe(Arrays.asList("PLAYERMOVEMENTS"));
@@ -266,6 +273,13 @@ public class GameHandler extends Thread {
         p.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, ipBroker + ":" + puertoBroker);
         p.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         p.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        p.setProperty("security.protocol", "SSL");
+        p.setProperty("ssl.truststore.location", "./secrets/all.truststore.jks");
+        p.setProperty("ssl.truststore.password", "against-all-truststore-password");
+        p.setProperty("ssl.endpoint.identification.algorithm", "");
+        p.setProperty("ssl.keystore.location", "./secrets/engine.keystore.jks");
+        p.setProperty("ssl.keystore.password", "against-all-aa-engine-password");
+        p.setProperty("ssl.key.password", "against-all-aa-engine-password");
 
         mapProducer = new KafkaProducer<>(p);
     }
