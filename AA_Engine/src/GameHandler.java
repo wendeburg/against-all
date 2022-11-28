@@ -56,6 +56,7 @@ public class GameHandler extends Thread {
     private Game partida;
     private String idPartida;
     private final MongoCollection<Document> coleccionUsuarios;
+    private final MongoCollection<Document> coleccionMapa;
     private final MongoClient cliente;
 
     public GameHandler(String ipBroker, int puertoBroker, String archivoGuardarEstadoPartida, JSONObject estadoPartida, RandomTokenGenerator tokenGenerator, String ipDB, int puertoDB) throws Exception {
@@ -76,6 +77,7 @@ public class GameHandler extends Thread {
         cliente = MongoClients.create("mongodb://" + ipDB + ":" + puertoDB);
         MongoDatabase db = cliente.getDatabase("against-all-db");
         coleccionUsuarios = db.getCollection("users");
+        coleccionMapa = db.getCollection("latest-map");
 
         this.partida = new Game((JSONArray) estadoPartida.get("mapa"), jugadores, NPCs, ciudades, coleccionUsuarios);
     }
@@ -155,6 +157,7 @@ public class GameHandler extends Thread {
         cliente = MongoClients.create("mongodb://" + ipDB + ":" + puertoDB);
         MongoDatabase db = cliente.getDatabase("against-all-db");
         coleccionUsuarios = db.getCollection("users");
+        coleccionMapa = db.getCollection("latest-map");
 
         this.partida = new Game(NPCs, coleccionUsuarios);
     }
@@ -400,7 +403,7 @@ public class GameHandler extends Thread {
         return obj;
     }
 
-    private void saveGameStateToFile(ArrayList<String> ganadores) {
+    private void saveGameState(ArrayList<String> ganadores) {
         JSONArray mapaJSON = partida.getMapAsJSONArray();
         JSONObject jugadoresJSON = getPlayersAsJSONObject();
         JSONObject npcsJSON = getNPCsAsJSONObject();
@@ -428,6 +431,7 @@ public class GameHandler extends Thread {
             obj.put("winners", winners);
         }
 
+        // Se guarda la partida en un archivo.
         PrintWriter writer;
         try {
             writer = new PrintWriter(archivoGuardarEstadoPartida);
@@ -438,6 +442,9 @@ public class GameHandler extends Thread {
         } catch (FileNotFoundException e) {
             System.out.println("No se ha podido abrir el archivo para guardar la partida.");
         }
+
+        // Se guarda en al DB para la API.
+        coleccionMapa.insertOne(Document.parse(obj.toJSONString()));
     }
 
     private void gestionarPartida() {
@@ -445,7 +452,7 @@ public class GameHandler extends Thread {
         HashMap<Integer, Long> lastMovementsLogger = new HashMap<>();
 
         mapProducer.send(new ProducerRecord<String,String>("MAP", getGameStateAsJSONString(null)));
-        saveGameStateToFile(null);
+        saveGameState(null);
 
         long tiempoInicial = System.currentTimeMillis() / 1000;
         initLastMovementsLogger(lastMovementsLogger, tiempoInicial);
@@ -492,7 +499,7 @@ public class GameHandler extends Thread {
 
             mapProducer.send(new ProducerRecord<String,String>("MAP", getGameStateAsJSONString(null)));
             mapProducer.flush();
-            saveGameStateToFile(null);
+            saveGameState(null);
         }
     }
 
@@ -573,7 +580,7 @@ public class GameHandler extends Thread {
             }
 
             mapProducer.send(new ProducerRecord<String,String>("MAP", getGameStateAsJSONString(ganadores)));
-            saveGameStateToFile(ganadores);
+            saveGameState(ganadores);
 
             npcAuthHandler.stopThread();
             playerMovementsConsumer.close();
