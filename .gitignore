@@ -424,3 +424,4 @@ AA_Engine/.vscode/launch.json
 
 # Eliminar node_modules
 node_modules/
+package-lock.json
