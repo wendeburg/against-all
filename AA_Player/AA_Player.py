@@ -308,9 +308,21 @@ class Player:
                 self._consumer = kafka.KafkaConsumer("MAP",
                                             auto_offset_reset='latest', enable_auto_commit=True,
                                         bootstrap_servers=self.bootstrap_addr,
+                                        security_protocol='SSL',
+                                        ssl_check_hostname=True,
+                                        ssl_cafile="./secrets/player.0.CARoot.pem",
+                                        ssl_certfile="./secrets/player.0.certificate.pem",
+                                        ssl_keyfile="./secrets/player.0.key.pem",
+                                        ssl_password="against-all-aa-player-password",
                                         value_deserializer=lambda x: json.loads(x.decode('utf-8')),
                                         group_id=str(uuid.uuid4()), consumer_timeout_ms=120000)
                 self.producer = kafka.KafkaProducer(bootstrap_servers=self.bootstrap_addr,
+                                        security_protocol='SSL',
+                                        ssl_check_hostname=True,
+                                        ssl_cafile="./secrets/player.0.CARoot.pem",
+                                        ssl_certfile="./secrets/player.0.certificate.pem",
+                                        ssl_keyfile="./secrets/player.0.key.pem",
+                                        ssl_password="against-all-aa-player-password",
                                         value_serializer=lambda x: json.dumps(x).encode('utf-8'))
             except:
                 raise Exception("Kafka broker no disponible")
