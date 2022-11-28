@@ -421,3 +421,6 @@ AA_Weather/.vscode/launch.json
 AA_NPC/.vscode/launch.json
 AA_Engine/.vscode/launch.json
 AA_Engine/.vscode/launch.json
+
+# Eliminar node_modules
+node_modules/
