@@ -3,6 +3,6 @@ import { getGameState } from '../controllers/gameStateController';
 
 let gameStateRouter = Router();
 
-gameStateRouter.get("/map", getGameState);
+gameStateRouter.get("/", getGameState);
 
 export default gameStateRouter;

@@ -1,11 +1,57 @@
+import { INSPECT_MAX_BYTES } from "buffer";
 import { Request, Response } from "express";
+import { getDBClientAndGameState } from "./utils";
 
-function getPlayerList(req: Request, res: Response) {
+async function getPlayerList(req: Request, res: Response) {
+    const { mongoClient, gameState } = await getDBClientAndGameState();
 
+    try {
+        if (gameState != null) {
+            const players = gameState['jugadores'];
+
+            for (const key in players) {
+                delete players[key].efectoFrio;
+                delete players[key].efectoCalor;
+                delete players[key].isNPC;
+                delete players[key].token;
+            }
+
+            res.status(200).json({success: true, players: players});
+        }
+        else {
+            res.sendStatus(500);
+        }
+    }
+    finally {
+        if (mongoClient != null) {
+            mongoClient.close();
+        }
+    }
 }
 
-function getSinglePlayer(req: Request, res: Response) {
+async function getSinglePlayer(req: Request, res: Response) {
+    const { mongoClient, gameState } = await getDBClientAndGameState();
 
+    try {
+        if (gameState != null) {
+            const player = gameState['jugadores'][req.params.playerid];
+
+            if (player == null) {
+                res.status(200).json({success: false, message: "No information found for the requested player."});
+            }
+            else {
+                res.status(200).json({success: true, player: player});
+            }
+        }
+        else {
+            res.sendStatus(500);
+        }
+    }
+    finally {
+        if (mongoClient != null) {
+            mongoClient.close();
+        }
+    }
 }
 
 export {
