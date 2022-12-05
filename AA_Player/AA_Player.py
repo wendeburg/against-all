@@ -7,6 +7,8 @@ import struct
 import kafka
 import threading
 import uuid
+import requests
+
 
 
 class bcolors:
@@ -103,7 +105,8 @@ def unpack(message):
 
 
 class Player:
-    def __init__(self, reg_ip, reg_port, engine_ip, engine_port, bootstrap_ip, bootstrap_port):
+    def __init__(self, reg_ip, reg_port, engine_ip, engine_port, bootstrap_ip, bootstrap_port, player_number):
+        self.player_number = player_number
         self.engine_addr = (engine_ip, engine_port)
         self.reg_addr = (reg_ip, reg_port)
         self.bootstrap_addr = [bootstrap_ip + ":" + str(bootstrap_port)]
@@ -298,6 +301,8 @@ class Player:
 
     def join_game(self):
         try:
+            #cafile = "./secrets/player." + str(self.player_number) + ".CARoot.pem"
+            #certfile = 
             self.token=None
             self.move=None
             self.muerto=False
@@ -382,8 +387,32 @@ class Player:
         except Exception as exc:
             print("Ha ocurrido un error:", exc)
 
-if (len(sys.argv)==7):
-    player=Player(sys.argv[1], int(sys.argv[2]), sys.argv[3], int(sys.argv[4]), sys.argv[5], int(sys.argv[6]))
+def register_user():
+    # Pedir los datos del usuario por consola
+    alias = input("Ingrese el alias del usuario: ")
+    password = input("Ingrese la contraseña del usuario: ")
+    ef = input("Ingrese el ef del usuario: ")
+    ec = input("Ingrese el ec del usuario: ")
+
+    # URL de la ruta /register de la aplicación de Flask
+    url = "http://localhost:5000/register"
+
+    # Crear el cuerpo de la solicitud con los datos del usuario
+    payload = {
+        'alias': alias,
+        'password': password,
+        'ef': ef,
+        'ec': ec
+    }
+
+    # Realizar la solicitud POST
+    response = requests.post(url, json=payload)
+
+    # Imprimir el mensaje de respuesta
+    print(response.text)
+
+if (len(sys.argv)==8):
+    player=Player(sys.argv[1], int(sys.argv[2]), sys.argv[3], int(sys.argv[4]), sys.argv[5], int(sys.argv[6]), int(sys.argv[7]))
     while True:
         os.system('cls||clear')
         print("---------------------------------")
@@ -400,7 +429,8 @@ if (len(sys.argv)==7):
             time.sleep(2)
             continue
         if opcion==1:
-            player.register("reg")
+            #player.register("reg")
+            register_user()
         if opcion==2:
             player.register("edit")
         if opcion==3:
@@ -408,5 +438,5 @@ if (len(sys.argv)==7):
         if opcion==4:
             os._exit(os.EX_OK)
 else:
-    print("Oops!. Something went bad. I need following args: <Registry_Server_IP> <Registry_Server_Port> <Auth_Server_IP> <Auth_Server_Port> <Bootstrap_Server_IP> <Bootstrap_Server_Port>")
+    print("Oops!. Something went bad. I need following args: <Registry_Server_IP> <Registry_Server_Port> <Auth_Server_IP> <Auth_Server_Port> <Bootstrap_Server_IP> <Bootstrap_Server_Port> <Player_Number>")
         

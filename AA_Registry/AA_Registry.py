@@ -4,6 +4,9 @@ import threading
 import pymongo
 import json
 import struct
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
 
 class bcolors:
     HEADER = '\033[95m'
@@ -190,6 +193,7 @@ def handle_client(conn, addr):
 
 
 def start():
+    app.run()
     server.listen()
     print(f"[LISTENING] Servidor a la escucha en {SERVER}")
     CONEX_ACTIVAS = threading.active_count()//3
@@ -213,6 +217,37 @@ def start():
             continue
         except Exception as exc:
             print("Algo falló con la conexion:", exc)
+
+@app.route('/hola')
+def hello():
+    return 'Hola, mundo!'
+
+
+@app.post('/register')
+def register():
+    # Obtener información del usuario del cuerpo de la solicitud
+    user_data = request.json
+
+    # Conectar a la base de datos de MongoDB
+    mongo_client = pymongo.MongoClient("mongodb://"+IP_BD+":"+PORT_BD+"/")
+
+    # Seleccionar la base de datos y la colección donde se guardarán los datos del usuario
+    db = mongo_client["against-all-db"]
+    users_collection = db["users"]
+
+    # Crear un nuevo documento con los datos del usuario
+    user_document = {
+        'alias': user_data['alias'],
+        'password': user_data['password'],
+        'nivel': '1',
+        'ef': user_data['ef'],
+        'ec': user_data['ec']
+    }
+
+    # Agregar el documento a la colección
+    users_collection.insert_one(user_document)
+
+    return 'Usuario registrado exitosamente'
 
 
 print("Registry starting...")
