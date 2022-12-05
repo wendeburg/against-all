@@ -390,15 +390,76 @@ class Player:
 def register_user():
     # Pedir los datos del usuario por consola
     alias = input("Ingrese el alias del usuario: ")
+
+    # Validar que el alias tenga máximo 20 caracteres y solo contenga caracteres alfanuméricos
+    if len(alias) > 20 or not alias.isalnum():
+        print("El alias no es válido")
+        return
+
     password = input("Ingrese la contraseña del usuario: ")
+    
     ef = input("Ingrese el ef del usuario: ")
+    # Validar que ef y ec sean enteros válidos entre -10 y 10
+    if not ef.isdigit() or not -10 <= int(ef) <= 10:
+        print("El valor de ef no es válido")
+        return
+
     ec = input("Ingrese el ec del usuario: ")
+    if not ec.isdigit() or not -10 <= int(ec) <= 10:
+        print("El valor de ec no es válido")
+        return
 
     # URL de la ruta /register de la aplicación de Flask
-    url = "http://localhost:5000/register"
+    url = "http://localhost:5050/register"
 
     # Crear el cuerpo de la solicitud con los datos del usuario
     payload = {
+        'alias': alias,
+        'password': password,
+        'ef': ef,
+        'ec': ec
+    }
+
+    # Realizar la solicitud POST
+    response = requests.post(url, json=payload)
+
+    # Imprimir el mensaje de respuesta
+    print(response.text)
+
+# Función para editar un usuario
+def edit_user():
+    # Pedir alias y contraseña del usuario por consola
+    alias_old = input("Ingrese el alias del usuario: ")
+    password_old = input("Ingrese la contraseña del usuario: ")
+
+    # Pedir los datos del usuario por consola
+    alias = input("Ingrese el nuevo alias del usuario: ")
+
+    # Validar que el alias tenga máximo 20 caracteres y solo contenga caracteres alfanuméricos
+    if len(alias) > 20 or not alias.isalnum():
+        print("El alias es demasiado largo o contiene caracteres inválidos")
+        return
+
+    password = input("Ingrese la nueva contraseña del usuario: ")
+    
+    ef = input("Ingrese el nuevo ef del usuario: ")
+    # Validar que ef y ec sean enteros válidos entre -10 y 10
+    if not ef.isdigit() or not -10 <= int(ef) <= 10:
+        print("El valor de ef no es válido")
+        return
+
+    ec = input("Ingrese el nuevo ec del usuario: ")
+    if not ec.isdigit() or not -10 <= int(ec) <= 10:
+        print("El valor de ec no es válido")
+        return
+
+    # URL de la ruta /register de la aplicación de Flask
+    url = "http://localhost:5050/edit"
+
+    # Crear el cuerpo de la solicitud con los datos del usuario
+    payload = {
+        'alias_old': alias_old,
+        'password_old': password_old,
         'alias': alias,
         'password': password,
         'ef': ef,
