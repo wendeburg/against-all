@@ -3,6 +3,6 @@ import { getMap } from '../controllers/mapController';
 
 let mapRouter = Router();
 
-mapRouter.get("/map", getMap);
+mapRouter.get("/", getMap);
 
 export default mapRouter;
