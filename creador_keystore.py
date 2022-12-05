@@ -40,6 +40,7 @@ for i in range(ks_num_start, ks_num_end):
         os.system(f"openssl pkcs12 -in {dst_path}{module_name}.{i}.cert_and_key.p12 -nodes -nocerts -out {dst_path}{module_name}.{i}.key.pem -passin pass:{ks_pass}")
 
 # El certificado del CA solo se eporta una vez.
-os.system(f"keytool -exportcert -alias caroot -keystore {dst_path}{module_name}.{ks_num_start}.keystore.jks -rfc -file {dst_path}{module_name}.CARoot.pem -storepass {ks_pass}")
+if (cvt_to_pem == "y"):
+    os.system(f"keytool -exportcert -alias caroot -keystore {dst_path}{module_name}.{ks_num_start}.keystore.jks -rfc -file {dst_path}{module_name}.CARoot.pem -storepass {ks_pass}")
 
 os.system(f"echo {ks_pass} > {dst_path}{module_name}_creds")

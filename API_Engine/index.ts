@@ -1,3 +1,7 @@
+import https from 'https';
+import fs from 'fs';
+import path from 'path';
+
 import express, { Express, Request, Response } from 'express';
 import cors from 'cors';
 
@@ -27,6 +31,14 @@ app.use(function (req: Request, res: Response) {
   res.sendStatus(404);
 });
 
-app.listen(port, () => {
-  console.log(`⚡️[server]: Server is running at http://localhost:${port}`);
+const SSLPath = path.join(__dirname, 'secrets');
+
+const SSLConfig = {
+    key: fs.readFileSync(SSLPath + "/api-engine.0.key.pem"),
+    cert: fs.readFileSync(SSLPath + "/api-engine.0.certificate.pem"),
+    ca: fs.readFileSync(SSLPath + "/api-engine.CARoot.pem"),
+}
+
+https.createServer(SSLConfig, app).listen(port, () => {
+    console.log(`⚡️[server]: Server is running at https://localhost:${port}`);
 });
