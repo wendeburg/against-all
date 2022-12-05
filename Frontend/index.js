@@ -1,5 +1,7 @@
 (async function() {
-    const baseUrl = "https://localhost:4000/"
+    const port = prompt("Introduce el puerto de API_Engine");
+
+    const baseUrl = "https://localhost:" + port + "/";
 
     const body = document.querySelector("#body");
     const header = document.querySelector("#header");
@@ -173,8 +175,8 @@
 
                 for (let k = 0; k < elementsArray.length; k++) {
                     if (elementsArray[k] == 1) {
-                        // Mina.
-                        elementInCellStr = "M";
+                        // Alimento.
+                        elementInCellStr = "A";
                         break;
                     }
                     else if (elementsArray[k] == 0) {
@@ -182,8 +184,8 @@
                         elementInCellStr = "";
                     }
                     else if (elementsArray[k] == 2) {
-                        // Alimento.
-                        elementInCellStr = "A";
+                        // Mina.
+                        elementInCellStr = "M";
                     }
                     else {
                         // Jugador/NPC.
@@ -214,6 +216,8 @@
     }
 
     function updatePlayersAndNPCs(characters, infoContainer, updatingPlayers) {
+        removeAllChildNodes(infoContainer);
+
         if (Object.keys(characters).length === 0) {
             let noCharactersMessage = document.createElement("p");
             noCharactersMessage.classList.add("no-characters-message");
@@ -291,7 +295,11 @@
 
         updatePlayersAndNPCs(npcsRequest.npcs, body.children[2].children[1], false);
 
-        break;
+        gameStateRequest = await getGameState();
     }
+
+    // TODO.
+    // Mostrar ganadores. Y Reiniciar buel buscando nueva partida.
+    // Hacer que al poner el mouse encima de un jugador te de infomación del jugador.
 }
 )();
