@@ -1,0 +1,156 @@
+body {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    font-family: 'Roboto', sans-serif;
+    background-color: #E5E5E5;
+}
+
+#website-title {
+    margin-top: 30px;
+    margin-bottom: 10px;
+    margin-left: 50px;
+}
+
+#header {
+    height: max-content;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
+#body {
+    height: calc(100vh - 118px);
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 50px;
+}
+
+#body.display-message {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.initial-message {
+    font-size: 25px;
+    animation-name: parpadeo;
+    animation-duration: 2.5s;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+    font-weight: 500;
+}
+
+@keyframes parpadeo {  
+    0% { opacity: 1.0; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1.0; }
+}
+
+.error-message {
+    color: #FF0000;
+}
+
+#gameid {
+    font-size: 20px;
+    font-weight: 400;
+    margin-left: 50px;
+}
+
+#board {
+    grid-template-columns: repeat(20, 1fr);
+    grid-template-rows: repeat(20, 1fr);
+    height: 550px;
+    width: 550px;
+    border: 3px solid #000000;
+    background-color: #FFFFFF;
+    display: grid;
+}
+
+.info-container-wrapper {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    height: 550px;
+}
+
+.info-container-title {
+    position: absolute;
+    top: -30px;
+}
+
+.info-container {
+    height: max-content;
+    width: max-content;
+    min-width: 180px;
+    border: 3px solid #000000;
+    background-color: #FFFFFF;
+}
+
+.city-info {
+    font-size: 16px;
+    padding: 5px 10px 5px 10px;
+}
+
+.city-info:not(:last-child) {
+    border-bottom: 1px solid #000000;
+}
+
+.city1 {
+    background-color: #ccffcc;
+}
+
+.city2 {
+    background-color: #80d4ff;
+}
+
+.city3 {
+    background-color: #e6b3ff;
+}
+
+.city4 {
+    background-color: #ffff99;
+}
+
+.board-cell {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.board-cell-element {
+    font-weight: 700;
+}
+
+.mine {
+    color: #FF0000;
+}
+
+.food {
+    color: #12820c;
+}
+
+.player {
+    color: #0000ff
+}
+
+.player-info-wrapper {
+    padding: 5px 10px 5px 10px;
+}
+
+.player-info-wrapper:not(:last-child) {
+    border-bottom: 1px solid #000000;
+}
+
+.player-info-name {
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.no-characters-message {
+    padding: 5px 10px 5px 10px;
+}
