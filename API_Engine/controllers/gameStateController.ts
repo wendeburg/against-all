@@ -6,7 +6,7 @@ async function getGameState(req: Request, res: Response) {
 
     try {
         if (gameState != null) {
-            res.status(200).json({success: true, gamefinished: gameState['gamefinished']});
+            res.status(200).json({success: true, gamefinished: gameState['gamefinished'], winners: gameState['winners']});
         }
         else {
             res.sendStatus(500);
