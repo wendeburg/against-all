@@ -129,13 +129,13 @@ def edit():
 print("Registry starting...")
 
 if (len(sys.argv) == 4):
-    IP_BD = sys.argv[1]
-    PORT_BD = sys.argv[2]
-    MAX_CONEXIONES = int(sys.argv[3])
+    PORT = sys.argv[1]
+    IP_BD = sys.argv[2]
+    PORT_BD = sys.argv[3]
 
     try:
-        app.run(host='0.0.0.0', port=5050, ssl_context=ssl_context)
+        app.run(host='0.0.0.0', port=PORT, ssl_context=ssl_context)
     except Exception as exc:
         print("Something failed:", exc)
 else:
-    print ("Oops!. Something went bad. I need following args: <ip_bd> <puerto_bd> <conexiones_maximas_concurrentes>")
+    print ("Oops!. Something went bad. I need following args: <puerto> <ip_bd> <puerto_bd>")

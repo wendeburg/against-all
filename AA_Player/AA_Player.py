@@ -9,6 +9,8 @@ import threading
 import uuid
 import requests
 import hashlib
+import ssl
+from msvcrt import getch
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -236,7 +238,9 @@ class Player:
                 #    self.move = event.name
                 #else:
                 #    continue
-                self.move=input()
+                # Coger la tecla pulsada sin tener que darle a enter
+                self.move = getch()
+                
                 if not self.partida_iniciada:
                     print(bcolors.WARNING + "Partida no iniciada" + bcolors.ENDC)
                 elif self.move in self._valid_moves.keys():
@@ -318,18 +322,18 @@ class Player:
                                         bootstrap_servers=self.bootstrap_addr,
                                         security_protocol='SSL',
                                         ssl_check_hostname=False,
-                                        ssl_cafile="./secrets/player.0.CARoot.pem",
-                                        ssl_certfile="./secrets/player.0.certificate.pem",
-                                        ssl_keyfile="./secrets/player.0.key.pem",
+                                        ssl_cafile="./secrets/player."+str(self.player_number)+".CARoot.pem",
+                                        ssl_certfile="./secrets/player."+str(self.player_number)+".certificate.pem",
+                                        ssl_keyfile="./secrets/player."+str(self.player_number)+".key.pem",
                                         ssl_password="against-all-aa-player-password",
                                         value_deserializer=lambda x: json.loads(x.decode('utf-8')),
                                         group_id=str(uuid.uuid4()), consumer_timeout_ms=120000)
                 self.producer = kafka.KafkaProducer(bootstrap_servers=self.bootstrap_addr,
                                         security_protocol='SSL',
                                         ssl_check_hostname=False,
-                                        ssl_cafile="./secrets/player.0.CARoot.pem",
-                                        ssl_certfile="./secrets/player.0.certificate.pem",
-                                        ssl_keyfile="./secrets/player.0.key.pem",
+                                        ssl_cafile="./secrets/player."+str(self.player_number)+".CARoot.pem",
+                                        ssl_certfile="./secrets/player."+str(self.player_number)+".certificate.pem",
+                                        ssl_keyfile="./secrets/player."+str(self.player_number)+".key.pem",
                                         ssl_password="against-all-aa-player-password",
                                         value_serializer=lambda x: json.dumps(x).encode('utf-8'))
             except Exception as exc:
@@ -340,7 +344,14 @@ class Player:
             print("Contra: ")
             contra= input()
             entry = {"alias" : alias, "password": contra}
+
+            # Crear un socket TCP/IP
             server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            # Crear un contexto SSL
+            ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile="./secrets/player."+str(self.player_number)+".CARoot.pem", check_hostname=False)
+            ssl_context.load_cert_chain(certfile="./secrets/player."+str(self.player_number)+".certificate.pem", password="against-all-aa-player-password")
+            # Envolver el socket en un SSL socket
+            server = ssl.wrap_socket(server, ca_certs="./secrets/player."+str(self.player_number)+".CARoot.pem", cert_reqs=ssl.CERT_REQUIRED)
             server.settimeout(30)
             server.connect(self.engine_addr)
             print (f"Establecida conexión. Esperando autenticación")
@@ -404,13 +415,13 @@ class Player:
         # Cifrar la contraseña con MD5
         password = hashlib.md5(password.encode()).hexdigest()
         
-        ef = input("Ingrese el ef del usuario: ")
+        ef = input("EF: ")
         # Validar que ef y ec sean enteros válidos entre -10 y 10
         if not ef.isdigit() or not -10 <= int(ef) <= 10:
             print("El valor de ef no es válido")
             return
 
-        ec = input("Ingrese el ec del usuario: ")
+        ec = input("EC: ")
         if not ec.isdigit() or not -10 <= int(ec) <= 10:
             print("El valor de ec no es válido")
             return
@@ -454,13 +465,13 @@ class Player:
         # Cifrar la contraseña con MD5
         password = hashlib.md5(password.encode()).hexdigest()
         
-        ef = input("Ingrese el nuevo ef del usuario: ")
+        ef = input("EF: ")
         # Validar que ef y ec sean enteros válidos entre -10 y 10
         if not ef.isdigit() or not -10 <= int(ef) <= 10:
             print("El valor de ef no es válido")
             return
 
-        ec = input("Ingrese el nuevo ec del usuario: ")
+        ec = input("EC: ")
         if not ec.isdigit() or not -10 <= int(ec) <= 10:
             print("El valor de ec no es válido")
             return
@@ -512,7 +523,7 @@ if (len(sys.argv)==8):
         if opcion==3:
             player.join_game()
         if opcion==4:
-            os._exit(os.EX_OK)
+            os._exit(0)
 else:
     print("Oops!. Something went bad. I need following args: <Registry_Server_IP> <Registry_Server_Port> <Auth_Server_IP> <Auth_Server_Port> <Bootstrap_Server_IP> <Bootstrap_Server_Port> <Player_Number>")
         

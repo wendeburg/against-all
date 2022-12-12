@@ -49,13 +49,26 @@ class NPC:
 
     def join_game(self):
         self.id = str(uuid.uuid4())
+        # Conectarse a Kafka por SSL
         consumer = kafka.KafkaConsumer("TOKENOFFERS",
                                         auto_offset_reset='earliest', enable_auto_commit=True,
                                        bootstrap_servers=self.bootstrap_addr,
                                        value_deserializer=lambda x: json.loads(x.decode('utf-8')),
-                                       group_id=self.id)
+                                       group_id=self.id,
+                                       security_protocol="SSL",
+                                       ssl_cafile="./secrets/ca-cert",
+                                       ssl_certfile="./secrets/service.cert",
+                                       ssl_keyfile="./secrets/service.key",
+                                       ssl_check_hostname=False,
+                                       ssl_password="kafka")
         producer = kafka.KafkaProducer(bootstrap_servers=self.bootstrap_addr,
-                                      value_serializer=lambda x: json.dumps(x).encode('utf-8'))
+                                      value_serializer=lambda x: json.dumps(x).encode('utf-8'),
+                                      security_protocol="SSL",
+                                      ssl_cafile="./secrets/ca-cert",
+                                      ssl_certfile="./secrets/service.cert",
+                                      ssl_keyfile="./secrets/service.key",
+                                      ssl_check_hostname=False,
+                                      ssl_password="kafka")
 
         
         producer.send("NPCAUTHREQUEST", {"type":"request", "npcid":self.id})
