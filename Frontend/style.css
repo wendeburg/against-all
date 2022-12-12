@@ -54,10 +54,19 @@ body {
     color: #FF0000;
 }
 
+#subtitle-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 20px;
+}
+
 #gameid {
     font-size: 20px;
     font-weight: 400;
     margin-left: 50px;
+    width: max-content;
 }
 
 #board {
@@ -153,4 +162,12 @@ body {
 
 .no-characters-message {
     padding: 5px 10px 5px 10px;
+}
+
+.winner {
+    background-color: #59e851;
+}
+
+#subtitle-error-message {
+    font-size: 20px;
 }

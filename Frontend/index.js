@@ -4,7 +4,9 @@
     const baseUrl = "https://localhost:" + port + "/";
 
     const body = document.querySelector("#body");
-    const header = document.querySelector("#header");
+    const subtitleContainer = document.querySelector("#subtitle-container");
+
+    let spectatedMatches = [];
 
     async function getGameID() {
         const res = await fetch(baseUrl);
@@ -250,53 +252,125 @@
         }
     }
 
-    let initialRequest = {}
+    function showRestartBtn() {
+        let restartBtn = document.createElement("button");
+        restartBtn.innerText = "Restart";
+        restartBtn.setAttribute("id", "restart-btn");
 
-    while (initialRequest["idpartida"] === undefined) {
-        try {
-            initialRequest = await getGameID();
-        }
-        catch (err) {
-            const loadingMessage = body.querySelector("#loading-message");
+        subtitleContainer.appendChild(restartBtn);
 
-            if (Array.from(body.childNodes).includes(loadingMessage)) {
-                body.removeChild(loadingMessage);
+        const btnElement = subtitleContainer.querySelector("#restart-btn");
+        btnElement.addEventListener("click", function() {
+            removeAllChildNodes(body);
+            removeAllChildNodes(subtitleContainer);
 
-                body.appendChild(getErrorMessage("There has been an error while retrieving game data. Retrying..."));
+            let loadingMsg = document.createElement("p");
+            loadingMsg.textContent = "Loading match data...";
+            loadingMsg.setAttribute("id", "loading-message");
+            loadingMsg.classList.add("initial-message");
+            body.appendChild(loadingMsg);
+
+            body.classList.add("display-message");
+
+            main();
+        });
+    }
+
+    function showWinners(winners) {
+        for (let i = 0; i < winners.length; i++) {
+            const playerInfoWrappers = body.children[1].children[1].children;
+
+            for (let j = 0; j < playerInfoWrappers.length; j++) {
+                if (playerInfoWrappers[j].children[0].textContent == winners[i]) {
+                    playerInfoWrappers[j].classList.add("winner");
+                }
             }
         }
     }
 
-    removeAllChildNodes(body);
-    body.className = "";
+    async function gameSpactateHandler(initialRequest) {
+        removeAllChildNodes(body);
+        body.className = "";
+    
+        const gameID = document.createElement('h2');
+        gameID.setAttribute("id", "gameid");
+        gameID.textContent = "Game ID: "+ initialRequest["idpartida"];
+    
+        subtitleContainer.appendChild(gameID);
+    
+        drawControlPanel();
+    
+        const citiesRequest = await getCtities();
+    
+        addCitiesToInfoContainer(citiesRequest.cities);
+    
+        let gameStateRequest = await getGameState();
+    
+        const gameInterval = setInterval(async function() {
+            try {
+                const playerRequest = await getPlayers();
+                const npcsRequest = await getNPCs();
+                const mapRequest = await getMap();
+        
+                updateMap(mapRequest.map);
+        
+                updatePlayersAndNPCs(playerRequest.players, body.children[1].children[1], true);
+        
+                updatePlayersAndNPCs(npcsRequest.npcs, body.children[2].children[1], false);
+        
+                gameStateRequest = await getGameState();
 
-    const gameID = document.createElement('h2');
-    gameID.setAttribute("id", "gameid");
-    gameID.textContent = "Game ID: "+ initialRequest["idpartida"];
+                const errorMsg = subtitleContainer.children[1];
 
-    header.appendChild(gameID);
-
-    drawControlPanel();
-
-    const citiesRequest = await getCtities();
-
-    addCitiesToInfoContainer(citiesRequest.cities);
-
-    let gameStateRequest = await getGameState();
-
-    while(!(gameStateRequest["gamefinished"] === true)) {
-        const playerRequest = await getPlayers();
-        const npcsRequest = await getNPCs();
-        const mapRequest = await getMap();
-
-        updateMap(mapRequest.map);
-
-        updatePlayersAndNPCs(playerRequest.players, body.children[1].children[1], true);
-
-        updatePlayersAndNPCs(npcsRequest.npcs, body.children[2].children[1], false);
-
-        gameStateRequest = await getGameState();
+                if (errorMsg && errorMsg.id === "subtitle-error-message") {
+                    subtitleContainer.removeChild(errorMsg);
+                }
+            }
+            catch (err) {
+                if (!subtitleContainer.querySelector(".error-message")) {
+                    let errorMsg = document.createElement("p");
+                    errorMsg.textContent = "An error has ocurred while retrieving match data. Retrying...";
+                    errorMsg.classList.add("error-message");
+                    errorMsg.setAttribute("id", "subtitle-error-message");
+    
+                    subtitleContainer.appendChild(errorMsg);
+                }
+            }
+    
+            if (gameStateRequest["gamefinished"] === true) {
+                clearInterval(gameInterval);
+                showRestartBtn();
+                showWinners(gameStateRequest["winners"]);
+            }
+        }, 500);
     }
+
+    async function main() {
+        let initialRequest = {};
+
+        const initialInterval = setInterval(async function() {
+            try {
+                initialRequest = await getGameID();
+            }
+            catch (err) {
+                const loadingMessage = body.querySelector("#loading-message");
+    
+                if (Array.from(body.childNodes).includes(loadingMessage)) {
+                    body.removeChild(loadingMessage);
+    
+                    body.appendChild(getErrorMessage("There has been an error while retrieving game data. Retrying..."));
+                }
+            }
+
+            if (initialRequest["idpartida"] !== undefined && !spectatedMatches.includes(initialRequest["idpartida"])) {
+                spectatedMatches.push(initialRequest["idpartida"]);
+                gameSpactateHandler(initialRequest);
+                clearInterval(initialInterval);
+            }
+        }, 1000);
+    }
+
+    main();
 
     // TODO.
     // Mostrar ganadores. Y Reiniciar buel buscando nueva partida.
