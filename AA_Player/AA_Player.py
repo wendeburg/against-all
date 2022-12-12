@@ -8,7 +8,12 @@ import kafka
 import threading
 import uuid
 import requests
+import hashlib
+import ssl
+from msvcrt import getch
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 
 class bcolors:
@@ -233,7 +238,9 @@ class Player:
                 #    self.move = event.name
                 #else:
                 #    continue
-                self.move=input()
+                # Coger la tecla pulsada sin tener que darle a enter
+                self.move = getch()
+                
                 if not self.partida_iniciada:
                     print(bcolors.WARNING + "Partida no iniciada" + bcolors.ENDC)
                 elif self.move in self._valid_moves.keys():
@@ -315,18 +322,18 @@ class Player:
                                         bootstrap_servers=self.bootstrap_addr,
                                         security_protocol='SSL',
                                         ssl_check_hostname=False,
-                                        ssl_cafile="./secrets/player.0.CARoot.pem",
-                                        ssl_certfile="./secrets/player.0.certificate.pem",
-                                        ssl_keyfile="./secrets/player.0.key.pem",
+                                        ssl_cafile="./secrets/player."+str(self.player_number)+".CARoot.pem",
+                                        ssl_certfile="./secrets/player."+str(self.player_number)+".certificate.pem",
+                                        ssl_keyfile="./secrets/player."+str(self.player_number)+".key.pem",
                                         ssl_password="against-all-aa-player-password",
                                         value_deserializer=lambda x: json.loads(x.decode('utf-8')),
                                         group_id=str(uuid.uuid4()), consumer_timeout_ms=120000)
                 self.producer = kafka.KafkaProducer(bootstrap_servers=self.bootstrap_addr,
                                         security_protocol='SSL',
                                         ssl_check_hostname=False,
-                                        ssl_cafile="./secrets/player.0.CARoot.pem",
-                                        ssl_certfile="./secrets/player.0.certificate.pem",
-                                        ssl_keyfile="./secrets/player.0.key.pem",
+                                        ssl_cafile="./secrets/player."+str(self.player_number)+".CARoot.pem",
+                                        ssl_certfile="./secrets/player."+str(self.player_number)+".certificate.pem",
+                                        ssl_keyfile="./secrets/player."+str(self.player_number)+".key.pem",
                                         ssl_password="against-all-aa-player-password",
                                         value_serializer=lambda x: json.dumps(x).encode('utf-8'))
             except Exception as exc:
@@ -337,7 +344,14 @@ class Player:
             print("Contra: ")
             contra= input()
             entry = {"alias" : alias, "password": contra}
+
+            # Crear un socket TCP/IP
             server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            # Crear un contexto SSL
+            ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile="./secrets/player."+str(self.player_number)+".CARoot.pem", check_hostname=False)
+            ssl_context.load_cert_chain(certfile="./secrets/player."+str(self.player_number)+".certificate.pem", password="against-all-aa-player-password")
+            # Envolver el socket en un SSL socket
+            server = ssl.wrap_socket(server, ca_certs="./secrets/player."+str(self.player_number)+".CARoot.pem", cert_reqs=ssl.CERT_REQUIRED)
             server.settimeout(30)
             server.connect(self.engine_addr)
             print (f"Establecida conexión. Esperando autenticación")
@@ -387,90 +401,99 @@ class Player:
         except Exception as exc:
             print("Ha ocurrido un error:", exc)
 
-def register_user():
-    # Pedir los datos del usuario por consola
-    alias = input("Ingrese el alias del usuario: ")
+    def register_user(self):
+        # Pedir los datos del usuario por consola
+        alias = input("Ingrese el alias del usuario: ")
 
-    # Validar que el alias tenga máximo 20 caracteres y solo contenga caracteres alfanuméricos
-    if len(alias) > 20 or not alias.isalnum():
-        print("El alias no es válido")
-        return
+        # Validar que el alias tenga máximo 20 caracteres y solo contenga caracteres alfanuméricos
+        if len(alias) > 20 or not alias.isalnum():
+            print("El alias no es válido")
+            return
 
-    password = input("Ingrese la contraseña del usuario: ")
-    
-    ef = input("Ingrese el ef del usuario: ")
-    # Validar que ef y ec sean enteros válidos entre -10 y 10
-    if not ef.isdigit() or not -10 <= int(ef) <= 10:
-        print("El valor de ef no es válido")
-        return
+        password = input("Ingrese la contraseña del usuario: ")
+        
+        # Cifrar la contraseña con MD5
+        password = hashlib.md5(password.encode()).hexdigest()
+        
+        ef = input("EF: ")
+        # Validar que ef y ec sean enteros válidos entre -10 y 10
+        if not ef.isdigit() or not -10 <= int(ef) <= 10:
+            print("El valor de ef no es válido")
+            return
 
-    ec = input("Ingrese el ec del usuario: ")
-    if not ec.isdigit() or not -10 <= int(ec) <= 10:
-        print("El valor de ec no es válido")
-        return
+        ec = input("EC: ")
+        if not ec.isdigit() or not -10 <= int(ec) <= 10:
+            print("El valor de ec no es válido")
+            return
 
-    # URL de la ruta /register de la aplicación de Flask
-    url = "http://localhost:5050/register"
+        # URL de la ruta /register de la aplicación de Flask
+        url = "https://" + self.reg_addr[0] + ":" + str(self.reg_addr[1]) + "/register"
 
-    # Crear el cuerpo de la solicitud con los datos del usuario
-    payload = {
-        'alias': alias,
-        'password': password,
-        'ef': ef,
-        'ec': ec
-    }
+        # Crear el cuerpo de la solicitud con los datos del usuario
+        payload = {
+            'alias': alias,
+            'password': password,
+            'ef': ef,
+            'ec': ec
+        }
 
-    # Realizar la solicitud POST
-    response = requests.post(url, json=payload)
+        # Realizar la solicitud POST
+        response = requests.post(url, json=payload, verify=False)
 
-    # Imprimir el mensaje de respuesta
-    print(response.text)
+        # Imprimir el mensaje de respuesta
+        print(response.text)
 
-# Función para editar un usuario
-def edit_user():
-    # Pedir alias y contraseña del usuario por consola
-    alias_old = input("Ingrese el alias del usuario: ")
-    password_old = input("Ingrese la contraseña del usuario: ")
+    # Función para editar un usuario
+    def edit_user(self):
+        # Pedir alias y contraseña del usuario por consola
+        alias_old = input("Ingrese el alias del usuario: ")
+        password_old = input("Ingrese la contraseña del usuario: ")
 
-    # Pedir los datos del usuario por consola
-    alias = input("Ingrese el nuevo alias del usuario: ")
+        # Cifrar la contraseña con MD5
+        password_old = hashlib.md5(password_old.encode()).hexdigest()
 
-    # Validar que el alias tenga máximo 20 caracteres y solo contenga caracteres alfanuméricos
-    if len(alias) > 20 or not alias.isalnum():
-        print("El alias es demasiado largo o contiene caracteres inválidos")
-        return
+        # Pedir los datos del usuario por consola
+        alias = input("Ingrese el nuevo alias del usuario: ")
 
-    password = input("Ingrese la nueva contraseña del usuario: ")
-    
-    ef = input("Ingrese el nuevo ef del usuario: ")
-    # Validar que ef y ec sean enteros válidos entre -10 y 10
-    if not ef.isdigit() or not -10 <= int(ef) <= 10:
-        print("El valor de ef no es válido")
-        return
+        # Validar que el alias tenga máximo 20 caracteres y solo contenga caracteres alfanuméricos
+        if len(alias) > 20 or not alias.isalnum():
+            print("El alias es demasiado largo o contiene caracteres inválidos")
+            return
 
-    ec = input("Ingrese el nuevo ec del usuario: ")
-    if not ec.isdigit() or not -10 <= int(ec) <= 10:
-        print("El valor de ec no es válido")
-        return
+        password = input("Ingrese la nueva contraseña del usuario: ")
 
-    # URL de la ruta /register de la aplicación de Flask
-    url = "http://localhost:5050/edit"
+        # Cifrar la contraseña con MD5
+        password = hashlib.md5(password.encode()).hexdigest()
+        
+        ef = input("EF: ")
+        # Validar que ef y ec sean enteros válidos entre -10 y 10
+        if not ef.isdigit() or not -10 <= int(ef) <= 10:
+            print("El valor de ef no es válido")
+            return
 
-    # Crear el cuerpo de la solicitud con los datos del usuario
-    payload = {
-        'alias_old': alias_old,
-        'password_old': password_old,
-        'alias': alias,
-        'password': password,
-        'ef': ef,
-        'ec': ec
-    }
+        ec = input("EC: ")
+        if not ec.isdigit() or not -10 <= int(ec) <= 10:
+            print("El valor de ec no es válido")
+            return
 
-    # Realizar la solicitud POST
-    response = requests.post(url, json=payload)
+        # URL de la ruta /edit de la aplicación de Flask
+        url = "https://" + self.reg_addr[0] + ":" + str(self.reg_addr[1]) + "/edit"
 
-    # Imprimir el mensaje de respuesta
-    print(response.text)
+        # Crear el cuerpo de la solicitud con los datos del usuario
+        payload = {
+            'alias_old': alias_old,
+            'password_old': password_old,
+            'alias': alias,
+            'password': password,
+            'ef': ef,
+            'ec': ec
+        }
+
+        # Realizar la solicitud POST
+        response = requests.post(url, json=payload, verify=False)
+
+        # Imprimir el mensaje de respuesta
+        print(response.text)
 
 if (len(sys.argv)==8):
     player=Player(sys.argv[1], int(sys.argv[2]), sys.argv[3], int(sys.argv[4]), sys.argv[5], int(sys.argv[6]), int(sys.argv[7]))
@@ -491,13 +514,16 @@ if (len(sys.argv)==8):
             continue
         if opcion==1:
             #player.register("reg")
-            register_user()
+            player.register_user()
+            time.sleep(2)
         if opcion==2:
-            player.register("edit")
+            #player.register("edit")
+            player.edit_user()
+            time.sleep(2)
         if opcion==3:
             player.join_game()
         if opcion==4:
-            os._exit(os.EX_OK)
+            os._exit(0)
 else:
     print("Oops!. Something went bad. I need following args: <Registry_Server_IP> <Registry_Server_Port> <Auth_Server_IP> <Auth_Server_Port> <Bootstrap_Server_IP> <Bootstrap_Server_Port> <Player_Number>")
         

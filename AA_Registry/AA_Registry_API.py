@@ -3,6 +3,7 @@ import sys
 from flask import Flask, request, jsonify
 import logging
 import hashlib
+import ssl
 
 class bcolors:
     HEADER = '\033[95m'
@@ -14,6 +15,10 @@ class bcolors:
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
+
+# Crear un contexto SSL para la conexión segura con el servidor
+ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+ssl_context.load_cert_chain('./secrets/cert.pem', './secrets/key.pem')
 
 # Inicializar Flask y establecer las opciones de configuración
 app = Flask(__name__)
@@ -34,9 +39,6 @@ def hello():
 def register():
     # Obtener información del usuario del cuerpo de la solicitud
     user_data = request.json
-
-    # Cifrar la contraseña del usuario con el algoritmo MD5
-    user_data['password'] = hashlib.md5(user_data['password'].encode('utf-8')).hexdigest()
 
     try:
         # Conectar a la base de datos de MongoDB
@@ -95,7 +97,7 @@ def edit():
     
     #Buscar el usuario en la base de datos
     user_document = users_collection.find({'alias': user_data['alias_old']})
-    if user_document.count() == 0:
+    if users_collection.count_documents({'alias': user_data['alias_old']}) == 0:
         # Loggear el evento
         logging.warning(request.remote_addr + ' : Ha intentado editar con error: Usuario no encontrado')
         # Cerrar la conexión con la base de datos
@@ -127,13 +129,13 @@ def edit():
 print("Registry starting...")
 
 if (len(sys.argv) == 4):
-    IP_BD = sys.argv[1]
-    PORT_BD = sys.argv[2]
-    MAX_CONEXIONES = int(sys.argv[3])
+    PORT = sys.argv[1]
+    IP_BD = sys.argv[2]
+    PORT_BD = sys.argv[3]
 
     try:
-        app.run(host='0.0.0.0', port=5050)
+        app.run(host='0.0.0.0', port=PORT, ssl_context=ssl_context)
     except Exception as exc:
         print("Something failed:", exc)
 else:
-    print ("Oops!. Something went bad. I need following args: <ip_bd> <puerto_bd> <conexiones_maximas_concurrentes>")
+    print ("Oops!. Something went bad. I need following args: <puerto> <ip_bd> <puerto_bd>")
