@@ -351,10 +351,9 @@ class Player:
             # Crear un contexto SSL
             ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile="./secrets/player."+str(self.player_number)+".CARoot.pem")
             ssl_context.check_hostname = False
-            ssl_context.set_ciphers("RSA")
             ssl_context.load_cert_chain(certfile="./secrets/player."+str(self.player_number)+".certificate.pem", keyfile="./secrets/player."+str(self.player_number)+".key.pem", password="against-all-aa-player-password")
             # Envolver el socket en un SSL socket
-            server = ssl.wrap_socket(server, ca_certs="./secrets/player."+str(self.player_number)+".CARoot.pem", cert_reqs=ssl.CERT_REQUIRED)
+            server = ssl.wrap_socket(server)
             server.settimeout(30)
             server.connect(self.engine_addr)
             print (f"Establecida conexión. Esperando autenticación")
