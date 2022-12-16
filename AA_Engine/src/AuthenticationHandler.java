@@ -1,8 +1,6 @@
 import java.net.*;
 import java.util.HashMap;
 
-import javax.net.ssl.SSLServerSocketFactory;
-
 import org.bson.Document;
 
 import com.mongodb.client.*;
@@ -45,16 +43,10 @@ public class AuthenticationHandler extends Thread {
 
     @Override
     public void run() {
-        System.setProperty("javax.net.ssl.keyStore", "secrets/engine.keystore.jks");
-        System.setProperty("javax.net.ssl.keyStorePassword","against-all-aa-engine-password");
-        System.setProperty("javax.net.ssl.trustStore", "secrets/all.truststore.jks");
-        System.setProperty("javax.net.ssl.trustStorePassword", "against-all-aa-engine-password");
-
         ServerSocket socketServidor = null;
         
         try {
-            SSLServerSocketFactory serverFactory = (SSLServerSocketFactory) SSLServerSocketFactory.getDefault();
-            socketServidor = serverFactory.createServerSocket(puerto);
+            socketServidor = new ServerSocket(puerto);
             System.out.println("Servidor de autenticación escuchando en el puerto: " + puerto);
             System.out.println("Para cerrar el servidor de autenticación presiona \"q\"");
 
