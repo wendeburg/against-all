@@ -10,6 +10,7 @@ import uuid
 import requests
 import hashlib
 import ssl
+import pygame
 from msvcrt import getch
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
@@ -348,7 +349,8 @@ class Player:
             # Crear un socket TCP/IP
             server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             # Crear un contexto SSL
-            ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile="./secrets/player."+str(self.player_number)+".CARoot.pem", check_hostname=False)
+            ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile="./secrets/player."+str(self.player_number)+".CARoot.pem")
+            ssl_context.check_hostname = False
             ssl_context.load_cert_chain(certfile="./secrets/player."+str(self.player_number)+".certificate.pem", password="against-all-aa-player-password")
             # Envolver el socket en un SSL socket
             server = ssl.wrap_socket(server, ca_certs="./secrets/player."+str(self.player_number)+".CARoot.pem", cert_reqs=ssl.CERT_REQUIRED)
@@ -386,10 +388,33 @@ class Player:
         finally:
             print(bcolors.OKCYAN + "Pulsa enter para continuar." + bcolors.ENDC)
             input()
-        
+
+    def draw_board(self):
+        # Dividiendo el tablero en 4 cuadrantes de 10x10 casillas con distintos colores
+        for i in range(10):
+            for j in range(10):
+                pygame.draw.rect(self.screen, (255, 255, 255), (i*30, j*30, 30, 30), 0)
+                pygame.draw.rect(self.screen, (0, 0, 0), (i*30, j*30, 30, 30), 1)
+        for i in range(10, 20):
+            for j in range(10, 20):
+                pygame.draw.rect(self.screen, (255, 255, 255), (i*30, j*30, 30, 30), 0)
+                pygame.draw.rect(self.screen, (0, 0, 0), (i*30, j*30, 30, 30), 1)
+        for i in range(10, 20):
+            for j in range(10):
+                pygame.draw.rect(self.screen, (0, 0, 0), (i*30, j*30, 30, 30), 0)
+                pygame.draw.rect(self.screen, (255, 255, 255), (i*30, j*30, 30, 30), 1)
+        for i in range(10):
+            for j in range(10, 20):
+                pygame.draw.rect(self.screen, (0, 0, 0), (i*30, j*30, 30, 30), 0)
+                pygame.draw.rect(self.screen, (255, 255, 255), (i*30, j*30, 30, 30), 1)
+        # Dibujar el tablero
+        pygame.display.flip()
+
 
     def play(self):
         try:
+                     
+
             self.muerto=False
             receive_kafka = threading.Thread(target=self.start_read)
             receive_kafka.start()
@@ -494,6 +519,15 @@ class Player:
 
         # Imprimir el mensaje de respuesta
         print(response.text)
+    
+    def jugar_pygame(self):
+        # Inicializar ventana Pygame
+        pygame.init()
+        self.screen = pygame.display.set_mode((600, 600))
+        pygame.display.set_caption("Against All")
+        # Dibujar un tablero de 20x20 casillas
+        self.draw_board() 
+        input()
 
 if (len(sys.argv)==8):
     player=Player(sys.argv[1], int(sys.argv[2]), sys.argv[3], int(sys.argv[4]), sys.argv[5], int(sys.argv[6]), int(sys.argv[7]))
@@ -522,6 +556,7 @@ if (len(sys.argv)==8):
             time.sleep(2)
         if opcion==3:
             player.join_game()
+            #player.jugar_pygame()
         if opcion==4:
             os._exit(0)
 else:
