@@ -14,7 +14,6 @@ import Utils.RandomTokenGenerator;
 
 class AA_Engine {
     private AA_Engine() {}
-
     public static void main(String[] args) {
         if (args.length < 8) {
             System.out.println("Error faltan argumentos.");
@@ -24,12 +23,15 @@ class AA_Engine {
         }
 
         File trustStore = new File ("/secrets/all.truststore.jks");
+        File keyStore = new File ("/secrets/engine.keystore.jks");
 
-        if (trustStore.getAbsoluteFile().exists()) {
-            System.out.println("Error: No se ha encontrado el archivo all.truststore.jks a.");
+        if (trustStore.getAbsoluteFile().exists() && keyStore.getAbsoluteFile().exists()) {
+            System.out.println("Error: No se ha encontrado el archivo all.truststore.jks o el engine.keystore.jks");
             
             System.exit(-1);
         }
+
+        System.setProperties(new ThreadLocalProperties(System.getProperties()));
 
         int puerto;
         int maxJugadores;
