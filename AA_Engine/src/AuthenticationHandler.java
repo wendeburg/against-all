@@ -1,5 +1,13 @@
+import java.io.File;
 import java.net.*;
+import java.security.KeyStore;
 import java.util.HashMap;
+
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLServerSocket;
+import javax.net.ssl.SSLServerSocketFactory;
+import javax.net.ssl.TrustManagerFactory;
 
 import org.bson.Document;
 
@@ -43,10 +51,29 @@ public class AuthenticationHandler extends Thread {
 
     @Override
     public void run() {
-        ServerSocket socketServidor = null;
+        SSLServerSocket socketServidor = null;
         
         try {
-            socketServidor = new ServerSocket(puerto);
+            // Contraseña del KeyStore.
+            char[] ksPassword = "against-all-aa-engine-password".toCharArray();
+            
+            // Cargar KeyStore.
+            KeyStore keyStore = KeyStore.getInstance(new File("./secrets/engine.keystore.jks"), ksPassword);
+            
+            // Incializar TrustStore a partir de Keystore.
+            TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            trustManagerFactory.init(keyStore);
+            KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance("NewSunX509");
+            keyManagerFactory.init(keyStore, ksPassword);
+
+            // Crear contexto SSL.
+            SSLContext ctx = SSLContext.getInstance("TLS");
+            ctx.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), null);
+            
+            // Crear fábrica de servidores SSLSocket.
+            SSLServerSocketFactory sslServerSocketFactory = ctx.getServerSocketFactory();
+
+            socketServidor = (SSLServerSocket) sslServerSocketFactory.createServerSocket(3001);
             System.out.println("Servidor de autenticación escuchando en el puerto: " + puerto);
             System.out.println("Para cerrar el servidor de autenticación presiona \"q\"");
 
@@ -66,6 +93,7 @@ public class AuthenticationHandler extends Thread {
             return;
         } catch (Exception e) {
             System.out.println("El socket no se puedo abrir.");
+            System.out.println(e);
         }
         finally {
             System.out.println("Servidor de autenticación cerrado.");
