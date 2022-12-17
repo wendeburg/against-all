@@ -323,7 +323,7 @@ class Player:
                                         bootstrap_servers=self.bootstrap_addr,
                                         security_protocol='SSL',
                                         ssl_check_hostname=False,
-                                        ssl_cafile="./secrets/player."+str(self.player_number)+".CARoot.pem",
+                                        ssl_cafile="./secrets/player.CARoot.pem",
                                         ssl_certfile="./secrets/player."+str(self.player_number)+".certificate.pem",
                                         ssl_keyfile="./secrets/player."+str(self.player_number)+".key.pem",
                                         ssl_password="against-all-aa-player-password",
@@ -332,7 +332,7 @@ class Player:
                 self.producer = kafka.KafkaProducer(bootstrap_servers=self.bootstrap_addr,
                                         security_protocol='SSL',
                                         ssl_check_hostname=False,
-                                        ssl_cafile="./secrets/player."+str(self.player_number)+".CARoot.pem",
+                                        ssl_cafile="./secrets/player.CARoot.pem",
                                         ssl_certfile="./secrets/player."+str(self.player_number)+".certificate.pem",
                                         ssl_keyfile="./secrets/player."+str(self.player_number)+".key.pem",
                                         ssl_password="against-all-aa-player-password",
@@ -349,12 +349,12 @@ class Player:
             # Crear un socket TCP/IP
             server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             # Crear un contexto SSL
-            ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile="./secrets/player."+str(self.player_number)+".CARoot.pem")
+            ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile="./secrets/player.CARoot.pem")
             ssl_context.check_hostname = False
             ssl_context.set_ciphers("RSA")
             ssl_context.load_cert_chain(certfile="./secrets/player."+str(self.player_number)+".certificate.pem", keyfile="./secrets/player."+str(self.player_number)+".key.pem", password="against-all-aa-player-password")
             # Envolver el socket en un SSL socket
-            server = ssl.wrap_socket(server, ca_certs="./secrets/player."+str(self.player_number)+".CARoot.pem", cert_reqs=ssl.CERT_REQUIRED)
+            server = ssl.wrap_socket(server, ca_certs="./secrets/player.CARoot.pem", cert_reqs=ssl.CERT_REQUIRED)
             server.settimeout(30)
             server.connect(self.engine_addr)
             print (f"Establecida conexión. Esperando autenticación")
