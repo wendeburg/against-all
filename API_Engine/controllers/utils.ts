@@ -1,4 +1,4 @@
-import { MongoClient } from 'mongodb';
+import { MongoClient, MongoServerSelectionError } from 'mongodb';
 import crypto from 'crypto';
 import { readFileSync } from 'fs';
 import path from 'path';
@@ -34,8 +34,12 @@ async function getDBClientAndGameState() {
         return {mongoClient, gameStateObj}
     }
     catch (err) {
-        console.log(err)
-        console.log("❌[server]: An error has ocurred while connecting to the data base. The request could not be fulfilled.");
+        if (err instanceof MongoServerSelectionError) {
+            console.log("❌[server]: An error ocurred while connecting to the data base. The request could not be fulfilled.");
+        }
+        else {
+            console.log("❌[server]: An error ocurred while processing the database response. The request could not be fulfilled.");
+        }
     }
 
     return {mongoClient: null, gameState: null}

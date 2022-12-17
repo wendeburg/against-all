@@ -23,11 +23,11 @@ app.use(express.urlencoded({ extended: false }));
 
 // Routes
 app.get("/", async function (req: Request, res: Response) {
-    const { mongoClient, gameState } = await getDBClientAndGameState();
+    const { mongoClient, gameStateObj } = await getDBClientAndGameState();
 
     try {
-        if (gameState != null) {
-            res.status(200).json({success: true, idpartida: gameState['idpartida']});
+        if (gameStateObj != null) {
+            res.status(200).json({success: true, idpartida: gameStateObj['idpartida']});
         }
         else {
             res.sendStatus(500);
