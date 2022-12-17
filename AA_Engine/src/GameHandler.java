@@ -7,6 +7,11 @@ import java.io.PrintWriter;
 import java.net.HttpURLConnection;
 import java.net.Socket;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.InvalidKeyException;
+import java.security.Key;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -14,6 +19,12 @@ import java.util.HashMap;
 import java.util.Properties;
 import java.util.Scanner;
 import java.util.UUID;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.spec.SecretKeySpec;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -58,6 +69,7 @@ public class GameHandler extends Thread {
     private final MongoCollection<Document> coleccionUsuarios;
     private final MongoCollection<Document> coleccionMapa;
     private final MongoClient cliente;
+    private String encryptionPassword;
 
     public GameHandler(String ipBroker, int puertoBroker, String archivoGuardarEstadoPartida, JSONObject estadoPartida, RandomTokenGenerator tokenGenerator, String ipDB, int puertoDB) throws Exception {
         this.authThread = null;
@@ -174,7 +186,7 @@ public class GameHandler extends Thread {
 
     private JSONObject mandarPeticion(String nombreCiduad) {
         try {
-            URL enlacePeticion = new URL("https://api.openweathermap.org/data/2.5/weather?q=" + nombreCiduad + "&appid=96e1dac69045891ae2002db2c6a5f6cc&units=metric");
+            URL enlacePeticion = new URL("https://api.openweathermap.org/data/2.5/weather?q=" + nombreCiduad + "&appid=" + Files.readString(Path.of("OpenWeather_API_Key")) + "&units=metric");
         
             HttpURLConnection conn = (HttpURLConnection) enlacePeticion.openConnection();
             conn.setRequestMethod("GET");
@@ -251,7 +263,7 @@ public class GameHandler extends Thread {
         }
     }
 
-    private void inicializarConsumidorDeMovimientosDeJugadores() {
+    private void inicializarConsumidorDeMovimientosDeJugadores(String keystorePassword, String truststorePassword) {
         Properties p = new Properties();
         p.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, ipBroker + ":" + puertoBroker);
         p.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
@@ -261,28 +273,28 @@ public class GameHandler extends Thread {
         p.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, Boolean.toString(true));
         p.setProperty("security.protocol", "SSL");
         p.setProperty("ssl.truststore.location", "./secrets/all.truststore.jks");
-        p.setProperty("ssl.truststore.password", "against-all-truststore-password");
+        p.setProperty("ssl.truststore.password", truststorePassword);
         p.setProperty("ssl.endpoint.identification.algorithm", "");
         p.setProperty("ssl.keystore.location", "./secrets/engine.keystore.jks");
-        p.setProperty("ssl.keystore.password", "against-all-aa-engine-password");
-        p.setProperty("ssl.key.password", "against-all-aa-engine-password");
+        p.setProperty("ssl.keystore.password", keystorePassword);
+        p.setProperty("ssl.key.password", keystorePassword);
 
         playerMovementsConsumer = new KafkaConsumer<>(p);
         playerMovementsConsumer.subscribe(Arrays.asList("PLAYERMOVEMENTS"));
     }
 
-    private void inicializarProductorDeMapa() {
+    private void inicializarProductorDeMapa(String keystorePassword, String truststorePassword) {
         Properties p = new Properties();
         p.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, ipBroker + ":" + puertoBroker);
         p.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         p.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         p.setProperty("security.protocol", "SSL");
         p.setProperty("ssl.truststore.location", "./secrets/all.truststore.jks");
-        p.setProperty("ssl.truststore.password", "against-all-truststore-password");
+        p.setProperty("ssl.truststore.password", truststorePassword);
         p.setProperty("ssl.endpoint.identification.algorithm", "");
         p.setProperty("ssl.keystore.location", "./secrets/engine.keystore.jks");
-        p.setProperty("ssl.keystore.password", "against-all-aa-engine-password");
-        p.setProperty("ssl.key.password", "against-all-aa-engine-password");
+        p.setProperty("ssl.keystore.password", keystorePassword);
+        p.setProperty("ssl.key.password", keystorePassword);
 
         mapProducer = new KafkaProducer<>(p);
     }
@@ -443,8 +455,20 @@ public class GameHandler extends Thread {
             System.out.println("No se ha podido abrir el archivo para guardar la partida.");
         }
 
-        // Se guarda en al DB para la API.
-        coleccionMapa.insertOne(Document.parse(obj.toJSONString()));
+        // Se guarda en la DB para la API.
+        try {
+            Key aesKey = new SecretKeySpec(encryptionPassword.getBytes(), "AES");
+
+            Cipher cipher = Cipher.getInstance("AES");
+            cipher.init(Cipher.ENCRYPT_MODE, aesKey);
+
+            Document matchData = new Document();
+            matchData.put("matchData", new String(cipher.doFinal(obj.toJSONString().getBytes())));
+
+            coleccionMapa.insertOne(matchData);
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
+            System.out.println(e);
+        }
     }
 
     private void gestionarPartida() {
@@ -505,89 +529,101 @@ public class GameHandler extends Thread {
 
     @Override
     public void run() {
-        NPCAuthenticationHandler npcAuthHandler = new NPCAuthenticationHandler(idPartida, ipBroker, puertoBroker, NPCs, tokenGenerator, partida);
-        npcAuthHandler.start();
-
-        if (!partidaRecuperada) {
-            try {
-                obtenerTemperaturas();
-            } catch (FileNotFoundException e1) {
-                System.out.println("No se ha encontrado el archivo para leer las ciudades. Usando ciudades por defecto.");
-            }
-    
-            partida.setCiudades(ciudades);
-        }
-
         try {
+            encryptionPassword = Files.readString(Path.of("./secrets/encryption_password"));
+            String keystorePassword = Files.readString(Path.of("./secrets/aa_engine_keystore_creds"));
+            String truststorePassword = Files.readString(Path.of("./secrets/trustore_creds"));
+        
+            NPCAuthenticationHandler npcAuthHandler = new NPCAuthenticationHandler(idPartida, ipBroker, puertoBroker, NPCs, tokenGenerator, partida, keystorePassword, truststorePassword);
+            npcAuthHandler.start();
 
             if (!partidaRecuperada) {
-                authThread.join();
-
-                jugadores = authThread.getJugadores();
-                partida.setJugadores(jugadores);
+                try {
+                    obtenerTemperaturas();
+                } catch (FileNotFoundException e1) {
+                    System.out.println("No se ha encontrado el archivo para leer las ciudades. Usando ciudades por defecto.");
+                }
+        
+                partida.setCiudades(ciudades);
             }
 
-            inicializarConsumidorDeMovimientosDeJugadores();
-            inicializarProductorDeMapa();
-            
-            System.out.println("La partida con id >>> " + idPartida + " <<< ha comenzado.");
-            gestionarPartida();
-            System.out.println("La partida con id >>> " + idPartida + " <<< ha finalizado.");
+            try {
 
-            ArrayList<String> ganadores = new ArrayList<>();
+                if (!partidaRecuperada) {
+                    authThread.join();
 
-            if (jugadores.size() == 1) {
-                System.out.println("El jugador >>> " + jugadores.get(jugadores.keySet().toArray()[0]).getAlias() + " <<< ha ganado.");
-                ganadores.add(jugadores.get(jugadores.keySet().toArray()[0]).getAlias());
-                coleccionUsuarios.updateOne(new Document("alias", jugadores.get(jugadores.keySet().toArray()[0]).getAlias()), new Document("$set", new Document("nivel", jugadores.get(jugadores.keySet().toArray()[0]).getNivel())));
+                    jugadores = authThread.getJugadores();
+                    partida.setJugadores(jugadores);
+                }
+
+                inicializarConsumidorDeMovimientosDeJugadores(keystorePassword, truststorePassword);
+                inicializarProductorDeMapa(keystorePassword, truststorePassword);
+                
+                System.out.println("La partida con id >>> " + idPartida + " <<< ha comenzado.");
+                gestionarPartida();
+                System.out.println("La partida con id >>> " + idPartida + " <<< ha finalizado.");
+
+                ArrayList<String> ganadores = new ArrayList<>();
+
+                if (jugadores.size() == 1) {
+                    System.out.println("El jugador >>> " + jugadores.get(jugadores.keySet().toArray()[0]).getAlias() + " <<< ha ganado.");
+                    ganadores.add(jugadores.get(jugadores.keySet().toArray()[0]).getAlias());
+                    coleccionUsuarios.updateOne(new Document("alias", jugadores.get(jugadores.keySet().toArray()[0]).getAlias()), new Document("$set", new Document("nivel", jugadores.get(jugadores.keySet().toArray()[0]).getNivel())));
+                }
+                else if (jugadores.size() > 1) {
+                    Jugador jugadorConMayorNivel = null;
+
+                    for (String j : jugadores.keySet()) {
+                        Jugador currentPlayer = jugadores.get(j);
+
+                        if (jugadorConMayorNivel == null || jugadorConMayorNivel.getNivel() < currentPlayer.getNivel()) {
+                            jugadorConMayorNivel = currentPlayer;
+                        }
+
+                        coleccionUsuarios.updateOne(new Document("alias", currentPlayer.getAlias()), new Document("$set", new Document("nivel", currentPlayer.getNivel())));
+                    }
+
+                    ArrayList<Jugador> jugadoresConMayorNivel = new ArrayList<>();
+
+                    for (String j : jugadores.keySet()) {
+                        Jugador currentPlayer = jugadores.get(j);
+
+                        if (jugadorConMayorNivel.getNivel() == currentPlayer.getNivel() && jugadorConMayorNivel.getToken() != currentPlayer.getToken()) {
+                            jugadoresConMayorNivel.add(currentPlayer);
+                        }
+                    }
+
+                    if (jugadoresConMayorNivel.size() == 0) {
+                        System.out.println("El jugador >>> " + jugadorConMayorNivel.getAlias() + " <<< ha ganado.");
+                        ganadores.add(jugadorConMayorNivel.getAlias());
+                    }
+                    else {
+                        System.out.println("Ha habido un empate entre los jugadores: ");
+                        System.out.println(">>> " + jugadorConMayorNivel.getAlias() + " <<<");
+
+                        for (Jugador j : jugadoresConMayorNivel) {
+                            System.out.println(">>> " + j.getAlias() + " <<<");
+                            ganadores.add(j.getAlias());
+                        }
+                    }
+                }
+
+                if (jugadores.size() > 0) {
+                    mapProducer.send(new ProducerRecord<String,String>("MAP", getGameStateAsJSONString(ganadores)));
+                    saveGameState(ganadores);
+                }
+
+                npcAuthHandler.stopThread();
+                playerMovementsConsumer.close();
+                mapProducer.close();
+                cliente.close();
+            } catch (InterruptedException e) {
+                System.out.println("No se puede esperar al hilo de autenticación porque se ha interrumpido.");
             }
-            else {
-                Jugador jugadorConMayorNivel = null;
-
-                for (String j : jugadores.keySet()) {
-                    Jugador currentPlayer = jugadores.get(j);
-
-                    if (jugadorConMayorNivel == null || jugadorConMayorNivel.getNivel() < currentPlayer.getNivel()) {
-                        jugadorConMayorNivel = currentPlayer;
-                    }
-
-                    coleccionUsuarios.updateOne(new Document("alias", currentPlayer.getAlias()), new Document("$set", new Document("nivel", currentPlayer.getNivel())));
-                }
-
-                ArrayList<Jugador> jugadoresConMayorNivel = new ArrayList<>();
-
-                for (String j : jugadores.keySet()) {
-                    Jugador currentPlayer = jugadores.get(j);
-
-                    if (jugadorConMayorNivel.getNivel() == currentPlayer.getNivel() && jugadorConMayorNivel.getToken() != currentPlayer.getToken()) {
-                        jugadoresConMayorNivel.add(currentPlayer);
-                    }
-                }
-
-                if (jugadoresConMayorNivel.size() == 0) {
-                    System.out.println("El jugador >>> " + jugadorConMayorNivel.getAlias() + " <<< ha ganado.");
-                    ganadores.add(jugadorConMayorNivel.getAlias());
-                }
-                else {
-                    System.out.println("Ha habido un empate entre los jugadores: ");
-                    System.out.println(">>> " + jugadorConMayorNivel.getAlias() + " <<<");
-
-                    for (Jugador j : jugadoresConMayorNivel) {
-                        System.out.println(">>> " + j.getAlias() + " <<<");
-                        ganadores.add(j.getAlias());
-                    }
-                }
-            }
-
-            mapProducer.send(new ProducerRecord<String,String>("MAP", getGameStateAsJSONString(ganadores)));
-            saveGameState(ganadores);
-
-            npcAuthHandler.stopThread();
-            playerMovementsConsumer.close();
-            mapProducer.close();
-            cliente.close();
-        } catch (InterruptedException e) {
-            System.out.println("No se puede esperar al hilo de autenticación porque se ha interrumpido.");
+        }
+        catch (IOException e) {
+            System.out.println(e);
+            System.out.println("No se pudo iniciar la partida. Puede que falte el archivo encryption_password o aa_engine_keystore_creds en secrets.");
         }
     }
 }

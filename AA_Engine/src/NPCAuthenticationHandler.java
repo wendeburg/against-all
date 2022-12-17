@@ -31,12 +31,14 @@ public class NPCAuthenticationHandler extends Thread {
     private boolean stopThread;
     private RandomTokenGenerator tokenGenerator;
     private Game partida;
+    private String keystorePassword;
+    private String truststorePassword;
 
     public void stopThread() {
         stopThread = true;
     }
 
-    public NPCAuthenticationHandler(String idPartida, String ipBroker, int puertoBroker, HashMap<String, Jugador> NPCs, RandomTokenGenerator tokenGenerator, Game partida) {
+    public NPCAuthenticationHandler(String idPartida, String ipBroker, int puertoBroker, HashMap<String, Jugador> NPCs, RandomTokenGenerator tokenGenerator, Game partida, String keystorePassword, String truststorePassword) {
         this.idPartida = idPartida;
         this.NPCs = NPCs;
         this.partida = partida;
@@ -44,6 +46,8 @@ public class NPCAuthenticationHandler extends Thread {
         this.puertoBroker = puertoBroker;
         this.stopThread = false;
         this.tokenGenerator = tokenGenerator;
+        this.keystorePassword = keystorePassword;
+        this.truststorePassword = truststorePassword;
     }
 
     private void inicializarConsumidor() {
@@ -56,11 +60,11 @@ public class NPCAuthenticationHandler extends Thread {
         p.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, Boolean.toString(true));
         p.setProperty("security.protocol", "SSL");
         p.setProperty("ssl.truststore.location", "./secrets/all.truststore.jks");
-        p.setProperty("ssl.truststore.password", "against-all-truststore-password");
+        p.setProperty("ssl.truststore.password", truststorePassword);
         p.setProperty("ssl.endpoint.identification.algorithm", "");
         p.setProperty("ssl.keystore.location", "./secrets/engine.keystore.jks");
-        p.setProperty("ssl.keystore.password", "against-all-aa-engine-password");
-        p.setProperty("ssl.key.password", "against-all-aa-engine-password");
+        p.setProperty("ssl.keystore.password", keystorePassword);
+        p.setProperty("ssl.key.password", keystorePassword);
 
         authRequestConsumer = new KafkaConsumer<>(p);
         authRequestConsumer.subscribe(Arrays.asList("NPCAUTHREQUEST"));
@@ -73,11 +77,11 @@ public class NPCAuthenticationHandler extends Thread {
         p.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         p.setProperty("security.protocol", "SSL");
         p.setProperty("ssl.truststore.location", "./secrets/all.truststore.jks");
-        p.setProperty("ssl.truststore.password", "against-all-truststore-password");
+        p.setProperty("ssl.truststore.password", truststorePassword);
         p.setProperty("ssl.endpoint.identification.algorithm", "");
         p.setProperty("ssl.keystore.location", "./secrets/engine.keystore.jks");
-        p.setProperty("ssl.keystore.password", "against-all-aa-engine-password");
-        p.setProperty("ssl.key.password", "against-all-aa-engine-password");
+        p.setProperty("ssl.keystore.password", keystorePassword);
+        p.setProperty("ssl.key.password", keystorePassword);
 
         tokenOfferProducer = new KafkaProducer<>(p);
     }

@@ -85,7 +85,7 @@ class AA_Engine {
                 }
             }
             else if (chosenOption.equals("2")) {
-                Path filePath = Path.of("./estado_ultima_partida.json");
+                Path filePath = Path.of(archivoGuardadoEstadoPartida);
                 String content;
                 try {
                     content = Files.readString(filePath);

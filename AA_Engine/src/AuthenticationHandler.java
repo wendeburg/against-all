@@ -1,5 +1,7 @@
 import java.io.File;
 import java.net.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.KeyStore;
 import java.util.HashMap;
 
@@ -55,7 +57,7 @@ public class AuthenticationHandler extends Thread {
         
         try {
             // Contraseña del KeyStore.
-            char[] ksPassword = "against-all-aa-engine-password".toCharArray();
+            char[] ksPassword = Files.readString(Path.of("./secrets/aa_engine_keystore_creds")).toCharArray();
             
             // Cargar KeyStore.
             KeyStore keyStore = KeyStore.getInstance(new File("./secrets/engine.keystore.jks"), ksPassword);
