@@ -3,11 +3,11 @@ import { Request, Response } from "express";
 import { getDBClientAndGameState } from "./utils";
 
 async function getPlayerList(req: Request, res: Response) {
-    const { mongoClient, gameState } = await getDBClientAndGameState();
+    const { mongoClient, gameStateObj } = await getDBClientAndGameState();
 
     try {
-        if (gameState != null) {
-            const players = gameState['jugadores'];
+        if (gameStateObj != null) {
+            const players = gameStateObj['jugadores'];
 
             for (const key in players) {
                 delete players[key].efectoFrio;
@@ -30,11 +30,11 @@ async function getPlayerList(req: Request, res: Response) {
 }
 
 async function getSinglePlayer(req: Request, res: Response) {
-    const { mongoClient, gameState } = await getDBClientAndGameState();
+    const { mongoClient, gameStateObj } = await getDBClientAndGameState();
 
     try {
-        if (gameState != null) {
-            const player = gameState['jugadores'][req.params.playerid];
+        if (gameStateObj != null) {
+            const player = gameStateObj['jugadores'][req.params.playerid];
 
             if (player == null) {
                 res.status(200).json({success: false, message: "No information found for the requested player."});

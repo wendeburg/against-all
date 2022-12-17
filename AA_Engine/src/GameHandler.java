@@ -7,14 +7,17 @@ import java.io.PrintWriter;
 import java.net.HttpURLConnection;
 import java.net.Socket;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Properties;
 import java.util.Scanner;
@@ -24,6 +27,7 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -457,16 +461,21 @@ public class GameHandler extends Thread {
 
         // Se guarda en la DB para la API.
         try {
-            Key aesKey = new SecretKeySpec(encryptionPassword.getBytes(), "AES");
+            Key tdesKey = new SecretKeySpec(encryptionPassword.split(":")[0].getBytes(), "TripleDES");
+            IvParameterSpec iv = new IvParameterSpec(encryptionPassword.split(":")[1].getBytes());
 
-            Cipher cipher = Cipher.getInstance("AES");
-            cipher.init(Cipher.ENCRYPT_MODE, aesKey);
+            Cipher cipher = Cipher.getInstance("TripleDES/CBC/PKCS5Padding");
+            cipher.init(Cipher.ENCRYPT_MODE, tdesKey, iv);
+
+            byte[] datosEncriptados = cipher.doFinal(obj.toJSONString().getBytes(StandardCharsets.UTF_8));
+
+            String datosCodificados = Base64.getEncoder().encodeToString(datosEncriptados);
 
             Document matchData = new Document();
-            matchData.put("matchData", new String(cipher.doFinal(obj.toJSONString().getBytes())));
+            matchData.put("matchData", datosCodificados);
 
             coleccionMapa.insertOne(matchData);
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException | InvalidAlgorithmParameterException e) {
             System.out.println(e);
         }
     }

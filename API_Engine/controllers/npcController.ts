@@ -2,12 +2,12 @@ import { Request, Response } from "express";
 import { getDBClientAndGameState } from "./utils";
 
 async function getNPCList(req: Request, res: Response) {
-    const { mongoClient, gameState } = await getDBClientAndGameState();
+    const { mongoClient, gameStateObj } = await getDBClientAndGameState();
 
     try {
-        if (gameState != null) {
+        if (gameStateObj != null) {
 
-            const npcs = gameState['npcs'];
+            const npcs = gameStateObj['npcs'];
 
             for (const key in npcs) {
                 delete npcs[key].efectoFrio;
@@ -30,11 +30,11 @@ async function getNPCList(req: Request, res: Response) {
 }
 
 async function getSingleNPC(req: Request, res: Response) {
-    const { mongoClient, gameState } = await getDBClientAndGameState();
+    const { mongoClient, gameStateObj } = await getDBClientAndGameState();
 
     try {
-        if (gameState != null) {
-            const npc = gameState['npcs'][req.params.npcid];
+        if (gameStateObj != null) {
+            const npc = gameStateObj['npcs'][req.params.npcid];
 
             if (npc == null) {
                 res.status(200).json({success: false, message: "No information found for the requested NPC."});
