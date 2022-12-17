@@ -1,12 +1,14 @@
 (async function() {
-    const port = prompt("Introduce el puerto de API_Engine");
+    const hostname = prompt("Introduce la ip y puerto de la API con el formato IP:PUERTO").split(":");
 
-    const baseUrl = "https://localhost:" + port + "/";
+    const baseUrl = "https://" + hostname[0] + ":" + hostname[1] + "/";
 
     const body = document.querySelector("#body");
     const subtitleContainer = document.querySelector("#subtitle-container");
 
     let spectatedMatches = [];
+
+    let citiesAdded = false;
 
     async function getGameID() {
         const res = await fetch(baseUrl);
@@ -153,15 +155,20 @@
         let citiesInfoContainer = body.children[3].children[1];
 
         let counter = 0;
-        for (let [key, value] of Object.entries(cities)) {
-            let newCityInfo = document.createElement("p");
-            newCityInfo.classList.add("city-info");
-            newCityInfo.classList.add(cityClasses[counter]);
-            newCityInfo.textContent = `${key}: ${value}`;
 
-            citiesInfoContainer.appendChild(newCityInfo);
-
-            counter++;
+        if (!citiesAdded) {
+            for (let [key, value] of Object.entries(cities)) {
+                let newCityInfo = document.createElement("p");
+                newCityInfo.classList.add("city-info");
+                newCityInfo.classList.add(cityClasses[counter]);
+                newCityInfo.textContent = `${key}: ${value}`;
+    
+                citiesInfoContainer.appendChild(newCityInfo);
+    
+                counter++;
+            }
+    
+            citiesAdded = true;
         }
     }
 
@@ -263,6 +270,7 @@
         btnElement.addEventListener("click", function() {
             removeAllChildNodes(body);
             removeAllChildNodes(subtitleContainer);
+            citiesAdded = false;
 
             let loadingMsg = document.createElement("p");
             loadingMsg.textContent = "Loading match data...";
@@ -296,7 +304,9 @@
         gameID.setAttribute("id", "gameid");
         gameID.textContent = "Game ID: "+ initialRequest["idpartida"];
     
-        subtitleContainer.appendChild(gameID);
+        if (!subtitleContainer.querySelector("#gameid")) {
+            subtitleContainer.appendChild(gameID);   
+        }
     
         drawControlPanel();
     
@@ -338,6 +348,7 @@
             }
     
             if (gameStateRequest["gamefinished"] === true) {
+                spectatedMatches.push(initialRequest["idpartida"]);
                 clearInterval(gameInterval);
                 showRestartBtn();
                 showWinners(gameStateRequest["winners"]);
@@ -363,7 +374,6 @@
             }
 
             if (initialRequest["idpartida"] !== undefined && !spectatedMatches.includes(initialRequest["idpartida"])) {
-                spectatedMatches.push(initialRequest["idpartida"]);
                 gameSpactateHandler(initialRequest);
                 clearInterval(initialInterval);
             }
