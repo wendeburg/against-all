@@ -12,6 +12,7 @@ import hashlib
 import ssl
 import pygame
 from msvcrt import getch
+import msvcrt
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -108,7 +109,10 @@ def unpack(message):
     msg=msg[1:i]
     return msg
 
-
+def getch_windows():
+    while not msvcrt.kbhit():
+        time.sleep(0.01)
+    return msvcrt.getch()
 
 class Player:
     def __init__(self, reg_ip, reg_port, engine_ip, engine_port, bootstrap_ip, bootstrap_port, player_number):
@@ -118,7 +122,7 @@ class Player:
         self.bootstrap_addr = [bootstrap_ip + ":" + str(bootstrap_port)]
         self._consumer=None
         self.producer=None
-        self._valid_moves = {"W":"N", "A":"W", "S":"S", "D":"E", "w":"N", "a":"W", "s":"S", "d":"E", "Q":"NW", "E":"NE", "Z":"SW", "C":"SE", "q":"NW", "e":"NE", "z":"SW", "c":"SE"}
+        self._valid_moves = {b'W':"N", b'A':"W", b'S':"S", b'D':"E", b'w':"N", b'a':"W", b's':"S", b'd':"E", b'Q':"NW", b'E':"NE", b'Z':"SW", b'C':"SE", b'q':"NW", b'e':"NE", b'z':"SW", b'c':"SE"}
         self.token=None
         self.move=None
         self.muerto=False
@@ -240,7 +244,7 @@ class Player:
                 #else:
                 #    continue
                 # Coger la tecla pulsada sin tener que darle a enter
-                self.move = getch()
+                self.move = getch_windows()
                 
                 if not self.partida_iniciada:
                     print(bcolors.WARNING + "Partida no iniciada" + bcolors.ENDC)
@@ -326,7 +330,7 @@ class Player:
                                         ssl_cafile="./secrets/player.CARoot.pem",
                                         ssl_certfile="./secrets/player."+str(self.player_number)+".certificate.pem",
                                         ssl_keyfile="./secrets/player."+str(self.player_number)+".key.pem",
-                                        ssl_password="against-all-aa-player-password",
+                                        ssl_password=open('./secrets/player_creds', 'r').read().replace('\n', ''),
                                         value_deserializer=lambda x: json.loads(x.decode('utf-8')),
                                         group_id=str(uuid.uuid4()), consumer_timeout_ms=120000)
                 self.producer = kafka.KafkaProducer(bootstrap_servers=self.bootstrap_addr,
@@ -335,7 +339,7 @@ class Player:
                                         ssl_cafile="./secrets/player.CARoot.pem",
                                         ssl_certfile="./secrets/player."+str(self.player_number)+".certificate.pem",
                                         ssl_keyfile="./secrets/player."+str(self.player_number)+".key.pem",
-                                        ssl_password="against-all-aa-player-password",
+                                        ssl_password=open('./secrets/player_creds', 'r').read().replace('\n', ''),
                                         value_serializer=lambda x: json.dumps(x).encode('utf-8'))
             except Exception as exc:
                 print(exc)
@@ -344,7 +348,7 @@ class Player:
             alias = input()
             print("Contra: ")
             contra= input()
-            entry = {"alias" : alias, "password": contra}
+            entry = {"alias" : alias, "password": hashlib.md5(contra.encode()).hexdigest()}
 
             # Crear un socket TCP/IP
             server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
