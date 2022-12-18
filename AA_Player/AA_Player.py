@@ -10,7 +10,10 @@ import uuid
 import requests
 import hashlib
 import ssl
-import pygame
+try:
+    import pygame
+except ImportError:
+    print("Pygame no está disponible")
 from msvcrt import getch
 import msvcrt
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
@@ -718,7 +721,7 @@ if (len(sys.argv)==8):
     while True:
         os.system('cls||clear')
         print("---------------------------------")
-        print("Modo de juego: Pygame" if player.pygame else "Modo de juego: Consola")
+        print("Modo de juego: Pygame (experimental)" if player.pygame else "Modo de juego: Consola")
         print("     1. Registrarse")
         print("     2. Editar perfil")
         print("     3. Unirse a partida")
