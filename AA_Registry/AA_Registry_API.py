@@ -26,30 +26,19 @@ app = Flask(__name__)
 logging.basicConfig(filename='AA_Registry.log', level=logging.DEBUG, format='%(asctime)s -  %(levelname)s - %(message)s')
 
 
-
-@app.route('/hola')
-def hello():
-    # Loggear el evento
-    logging.info(request.remote_addr + ' : Se ha recibido una peticion GET a /hola')
-    return 'Hola, mundo!'
-
-
 @app.post('/register')
 def register():
     # Obtener información del usuario del cuerpo de la solicitud
     user_data = request.json
-
     try:
         # Conectar a la base de datos de MongoDB
         mongo_client = pymongo.MongoClient("mongodb://"+IP_BD+":"+PORT_BD+"/")
-
         # Seleccionar la base de datos y la colección donde se guardarán los datos del usuario
         db = mongo_client["against-all-db"]
         users_collection = db["users"]
     except Exception as exc:
         print(str(exc))
         return bcolors.FAIL + 'La base de datos no responde' + bcolors.ENDC
-
     # Crear un nuevo documento con los datos del usuario
     user_document = {
         'alias': user_data['alias'],
@@ -58,23 +47,18 @@ def register():
         'ef': user_data['ef'],
         'ec': user_data['ec']
     }
-
     # Comparar el alias del usuario con los alias de los usuarios registrados
     for user in users_collection.find():
         if user['alias'] == user_data['alias']:
             # Loggear el evento
             logging.warning(request.remote_addr + ' : Se ha recibido una peticion de registro con alias ya registrado')
             return bcolors.FAIL + 'El alias ya está en uso' + bcolors.ENDC
-
     # Agregar el documento a la colección
     users_collection.insert_one(user_document)
-
     # Cerrar la conexión con la base de datos
     mongo_client.close()
-
     # Loggear el evento
     logging.info(request.remote_addr + ' : Se ha registrado un nuevo usuario')
-
     # Retornar un mensaje de éxito
     return bcolors.OKGREEN + 'Usuario registrado exitosamente' + bcolors.ENDC
 
@@ -86,14 +70,12 @@ def edit():
     try:
         # Conectar a la base de datos de MongoDB
         mongo_client = pymongo.MongoClient("mongodb://"+IP_BD+":"+PORT_BD+"/")
-
         # Seleccionar la base de datos y la colección donde se guardarán los datos del usuario
         db = mongo_client["against-all-db"]
         users_collection = db["users"]
     except Exception as exc:
         print(str(exc))
         return bcolors.FAIL + 'La base de datos no responde' + bcolors.ENDC
-    
     #Buscar el usuario en la base de datos
     user_document = users_collection.find({'alias': user_data['alias_old']})
     if users_collection.count_documents({'alias': user_data['alias_old']}) == 0:

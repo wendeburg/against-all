@@ -129,13 +129,15 @@ class Player:
         self.partida_iniciada=False
         self.alias=""
         self.partida=False
+        self.pygame=False
 
     def start_read(self):
         try:
-            # Inicializar ventana Pygame
-            pygame.init()
-            self.screen = pygame.display.set_mode((600, 680))
-            pygame.display.set_caption("Against All")
+            if self.pygame:
+                # Inicializar ventana Pygame
+                pygame.init()
+                self.screen = pygame.display.set_mode((600, 680))
+                pygame.display.set_caption("Against All")
 
 
             message_count = 0
@@ -181,8 +183,9 @@ class Player:
                         os.system("cls||clear")
                         #print('Message', message_count, ':')
                         
-                        # Dibujar un tablero de 20x20 casillas con los jugadores y los npcs
-                        self.draw_board(map, npcs, cities, message['ciudades'], jugador)
+                        if self.pygame:
+                            # Dibujar un tablero de 20x20 casillas con los jugadores y los npcs
+                            self.draw_board(map, npcs, cities, message['ciudades'], jugador)
 
                         # Dibujar mapa en la consola
                         string_mapa=""
@@ -715,10 +718,12 @@ if (len(sys.argv)==8):
     while True:
         os.system('cls||clear')
         print("---------------------------------")
+        print("Modo de juego: Pygame" if player.pygame else "Modo de juego: Consola")
         print("     1. Registrarse")
         print("     2. Editar perfil")
         print("     3. Unirse a partida")
-        print("     4. Salir")
+        print("     4. Activar/desactivar pygame")
+        print("     5. Salir")
         print("Opcion: ")
         try:
             opcion=int(input())
@@ -739,6 +744,8 @@ if (len(sys.argv)==8):
             player.join_game()
             #player.jugar_pygame()
         if opcion==4:
+            player.pygame=not player.pygame
+        if opcion==5:
             os._exit(0)
 else:
     print("Oops!. Something went bad. I need following args: <Registry_Server_IP> <Registry_Server_Port> <Auth_Server_IP> <Auth_Server_Port> <Bootstrap_Server_IP> <Bootstrap_Server_Port> <Player_Number>")
