@@ -372,7 +372,9 @@ class Player:
             # Crear un contexto SSL
             ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile="./secrets/player.CARoot.pem")
             ssl_context.check_hostname = False
-            ssl_context.load_cert_chain(certfile="./secrets/player."+str(self.player_number)+".certificate.pem", keyfile="./secrets/player."+str(self.player_number)+".key.pem", password="against-all-aa-player-password")
+            ssl_context.load_cert_chain(certfile="./secrets/player."+str(self.player_number)+".certificate.pem", 
+                                        keyfile="./secrets/player."+str(self.player_number)+".key.pem", 
+                                        password=open('./secrets/player_creds', 'r').read().replace('\n', ''))
             # Envolver el socket en un SSL socket
             server = ssl_context.wrap_socket(server)
             server.settimeout(30)
@@ -411,8 +413,6 @@ class Player:
             input()
 
     def draw_board(self, mapa, npcs, ciudades, temp, jugador):
-        
-
         # Dividiendo el tablero en 4 cuadrantes de 10x10 casillas con distintos colores
         shift = 2
         for i in range(10):
@@ -609,8 +609,6 @@ class Player:
 
     def play(self):
         try:
-                     
-
             self.muerto=False
             receive_kafka = threading.Thread(target=self.start_read)
             receive_kafka.start()
@@ -625,31 +623,24 @@ class Player:
     def register_user(self):
         # Pedir los datos del usuario por consola
         alias = input("Ingrese el alias del usuario: ")
-
         # Validar que el alias tenga máximo 20 caracteres y solo contenga caracteres alfanuméricos
         if len(alias) > 20 or not alias.isalnum():
             print("El alias no es válido")
             return
-
         password = input("Ingrese la contraseña del usuario: ")
-        
         # Cifrar la contraseña con MD5
         password = hashlib.md5(password.encode()).hexdigest()
-        
         ef = input("EF: ")
         # Validar que ef y ec sean enteros válidos entre -10 y 10
         if not ef.isdigit() or not -10 <= int(ef) <= 10:
             print("El valor de ef no es válido")
             return
-
         ec = input("EC: ")
         if not ec.isdigit() or not -10 <= int(ec) <= 10:
             print("El valor de ec no es válido")
             return
-
         # URL de la ruta /register de la aplicación de Flask
         url = "https://" + self.reg_addr[0] + ":" + str(self.reg_addr[1]) + "/register"
-
         # Crear el cuerpo de la solicitud con los datos del usuario
         payload = {
             'alias': alias,
@@ -657,10 +648,8 @@ class Player:
             'ef': ef,
             'ec': ec
         }
-
         # Realizar la solicitud POST
         response = requests.post(url, json=payload, verify=False)
-
         # Imprimir el mensaje de respuesta
         print(response.text)
 
@@ -669,37 +658,28 @@ class Player:
         # Pedir alias y contraseña del usuario por consola
         alias_old = input("Ingrese el alias del usuario: ")
         password_old = input("Ingrese la contraseña del usuario: ")
-
         # Cifrar la contraseña con MD5
         password_old = hashlib.md5(password_old.encode()).hexdigest()
-
         # Pedir los datos del usuario por consola
         alias = input("Ingrese el nuevo alias del usuario: ")
-
         # Validar que el alias tenga máximo 20 caracteres y solo contenga caracteres alfanuméricos
         if len(alias) > 20 or not alias.isalnum():
             print("El alias es demasiado largo o contiene caracteres inválidos")
             return
-
         password = input("Ingrese la nueva contraseña del usuario: ")
-
         # Cifrar la contraseña con MD5
         password = hashlib.md5(password.encode()).hexdigest()
-        
         ef = input("EF: ")
         # Validar que ef y ec sean enteros válidos entre -10 y 10
         if not ef.isdigit() or not -10 <= int(ef) <= 10:
             print("El valor de ef no es válido")
             return
-
         ec = input("EC: ")
         if not ec.isdigit() or not -10 <= int(ec) <= 10:
             print("El valor de ec no es válido")
             return
-
         # URL de la ruta /edit de la aplicación de Flask
         url = "https://" + self.reg_addr[0] + ":" + str(self.reg_addr[1]) + "/edit"
-
         # Crear el cuerpo de la solicitud con los datos del usuario
         payload = {
             'alias_old': alias_old,
@@ -709,10 +689,8 @@ class Player:
             'ef': ef,
             'ec': ec
         }
-
         # Realizar la solicitud POST
         response = requests.post(url, json=payload, verify=False)
-
         # Imprimir el mensaje de respuesta
         print(response.text)
 
