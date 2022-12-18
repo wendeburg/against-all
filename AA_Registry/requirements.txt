@@ -1,3 +1,2 @@
 pymongo==4.2.0
-logging
 flask
