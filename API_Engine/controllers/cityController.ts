@@ -2,14 +2,14 @@ import { Request, Response } from "express";
 import { getDBClientAndGameState } from "./utils";
 
 async function getCityList(req: Request, res: Response) {
-    const { mongoClient, gameStateObj } = await getDBClientAndGameState();
+    const { mongoClient, gameStateObj, errorMessage } = await getDBClientAndGameState();
 
     try {
         if (gameStateObj != null) {
             res.status(200).json({success: true, cities: gameStateObj['ciudades']});
         }
         else {
-            res.sendStatus(500);
+            res.status(500).json({errorMessage: errorMessage});
         }
     }
     finally {
@@ -20,7 +20,7 @@ async function getCityList(req: Request, res: Response) {
 }
 
 async function getSingleCity(req: Request, res: Response) {
-    const { mongoClient, gameState } = await getDBClientAndGameState();
+    const { mongoClient, gameState, errorMessage } = await getDBClientAndGameState();
 
     try {
         if (gameState != null) {
@@ -34,7 +34,7 @@ async function getSingleCity(req: Request, res: Response) {
             }
         }
         else {
-            res.sendStatus(500);
+            res.status(500).json({errorMessage: errorMessage});
         }
     }
     finally {

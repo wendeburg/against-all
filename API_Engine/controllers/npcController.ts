@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { getDBClientAndGameState } from "./utils";
 
 async function getNPCList(req: Request, res: Response) {
-    const { mongoClient, gameStateObj } = await getDBClientAndGameState();
+    const { mongoClient, gameStateObj, errorMessage } = await getDBClientAndGameState();
 
     try {
         if (gameStateObj != null) {
@@ -19,7 +19,7 @@ async function getNPCList(req: Request, res: Response) {
             res.status(200).json({success: true, npcs: npcs});
         }
         else {
-            res.sendStatus(500);
+            res.status(500).json({errorMessage: errorMessage});
         }
     }
     finally {
@@ -30,7 +30,7 @@ async function getNPCList(req: Request, res: Response) {
 }
 
 async function getSingleNPC(req: Request, res: Response) {
-    const { mongoClient, gameStateObj } = await getDBClientAndGameState();
+    const { mongoClient, gameStateObj, errorMessage } = await getDBClientAndGameState();
 
     try {
         if (gameStateObj != null) {
@@ -44,7 +44,7 @@ async function getSingleNPC(req: Request, res: Response) {
             }
         }
         else {
-            res.sendStatus(500);
+            res.status(500).json({errorMessage: errorMessage});
         }
     }
     finally {
