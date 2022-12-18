@@ -243,12 +243,12 @@
             playerName.classList.add("player-info-name");
             playerName.textContent = key;
 
-            if (updatingPlayers && movementsLogger) {
+            if (movementsLogger) {
                 const elementInCell = map[value["posicion"][0]][value["posicion"][1]][0];
 
                 for (let [token, time] of Object.entries(movementsLogger)) {
                     if (elementInCell == token) {
-                        if (Date.now()/1000 - time > 6) {
+                        if (Date.now()/1000 - time > 9) {
                             playerName.textContent += " - Lost connection?";
                             playerName.classList.add("error-message");
                         }
@@ -315,20 +315,12 @@
         if (!subtitleContainer.querySelector(".error-message")) {
             let errorMsg = document.createElement("p");
 
-            if (msg) {
-                errorMsg.textContent = "An error has ocurred while retrieving match data. " + msg + " Retrying...";
-            }
-            else {
-                errorMsg.textContent = "An error has ocurred while retrieving match data. Retrying...";
-            }
+            errorMsg.textContent = "An error has ocurred while retrieving match data. Retrying...";
 
             errorMsg.classList.add("error-message");
             errorMsg.setAttribute("id", "subtitle-error-message");
 
             subtitleContainer.appendChild(errorMsg);
-        }
-        else {
-            subtitleContainer.querySelector(".error-message").textContent = "An error has ocurred while retrieving match data. " + msg + " Retrying...";
         }
     }
 
@@ -362,7 +354,7 @@
 
                 updatePlayersAndNPCs(playerRequest.players, body.children[1].children[1], true, mapRequest.map, playerRequest.movementsLogger);
         
-                updatePlayersAndNPCs(npcsRequest.npcs, body.children[2].children[1], false);
+                updatePlayersAndNPCs(npcsRequest.npcs, body.children[2].children[1], false, mapRequest.map, playerRequest.movementsLogger);
         
                 gameStateRequest = await getGameState();
 
@@ -373,13 +365,14 @@
                 }
             }
             catch (err) {
-                showErrorMessage(null);
+                showErrorMessage();
             }
     
             if (gameStateRequest["gamefinished"] === true) {
                 spectatedMatches.push(initialRequest["idpartida"]);
                 clearInterval(gameInterval);
                 showRestartBtn();
+                console.log(gameStateRequest);
                 showWinners(gameStateRequest["winners"]);
             }
         }, 500);
