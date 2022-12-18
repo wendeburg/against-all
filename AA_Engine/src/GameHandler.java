@@ -355,6 +355,9 @@ public class GameHandler extends Thread {
             if (!j.getIsNPC()) {
                 coleccionUsuarios.updateOne(new Document("alias", j.getAlias()), new Document("$set", new Document("nivel", j.getNivel())));
             }
+            else {
+                NPCs.remove(j.getAlias());
+            }
         }
     }
 
