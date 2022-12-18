@@ -7,6 +7,8 @@ const db_ip = process.argv[3];
 const db_port = process.argv[4];
 
 async function getDBClientAndGameState() {
+    let errorMessage = "";
+
     try {
         const filePath = path.dirname(__filename).split(path.sep);
         filePath.pop();
@@ -35,14 +37,16 @@ async function getDBClientAndGameState() {
     }
     catch (err) {
         if (err instanceof MongoServerSelectionError) {
+            errorMessage = "Database may be down.";
             console.log("❌[server]: An error ocurred while connecting to the data base. The request could not be fulfilled.");
         }
         else {
+            errorMessage = "Error in API_Engine.";
             console.log("❌[server]: An error ocurred while processing the database response. The request could not be fulfilled.");
         }
     }
 
-    return {mongoClient: null, gameState: null}
+    return {mongoClient: null, gameState: null, errorMessage: errorMessage}
 }
 
 export {

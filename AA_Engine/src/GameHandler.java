@@ -334,9 +334,9 @@ public class GameHandler extends Thread {
             if (j != null) {
                 long t = System.currentTimeMillis() / 1000;
 
-                // Los jugadores que no hayan hecho un movimiento por más de 10 segundos
+                // Los jugadores que no hayan hecho un movimiento por más de 15 segundos
                 // se consideran desconectados.
-                if (t - lastMovementsLogger.get(token) > 10) {
+                if (t - lastMovementsLogger.get(token) > 15) {
                     jugadoresDesconectados.add(j);
                 }
             }
@@ -419,7 +419,17 @@ public class GameHandler extends Thread {
         return obj;
     }
 
-    private void saveGameState(ArrayList<String> ganadores) {
+    private JSONObject getMovementLoggerAsJSONObject(HashMap<Integer, Long> lastMovementsLogger) {
+        JSONObject obj = new JSONObject();
+
+        for (Integer token : lastMovementsLogger.keySet()) {
+            obj.put(token.toString(), lastMovementsLogger.get(token).toString());
+        }
+
+        return obj;
+    } 
+
+    private void saveGameState(ArrayList<String> ganadores, HashMap<Integer, Long> lastMovementsLogger) {
         JSONArray mapaJSON = partida.getMapAsJSONArray();
         JSONObject jugadoresJSON = getPlayersAsJSONObject();
         JSONObject npcsJSON = getNPCsAsJSONObject();
@@ -461,6 +471,10 @@ public class GameHandler extends Thread {
 
         // Se guarda en la DB para la API.
         try {
+            if (lastMovementsLogger != null) {
+                obj.put("movementsLogger", getMovementLoggerAsJSONObject(lastMovementsLogger));
+            }
+
             Key tdesKey = new SecretKeySpec(encryptionPassword.split(":")[0].getBytes(), "TripleDES");
             IvParameterSpec iv = new IvParameterSpec(encryptionPassword.split(":")[1].getBytes());
 
@@ -485,7 +499,7 @@ public class GameHandler extends Thread {
         HashMap<Integer, Long> lastMovementsLogger = new HashMap<>();
 
         mapProducer.send(new ProducerRecord<String,String>("MAP", getGameStateAsJSONString(null)));
-        saveGameState(null);
+        saveGameState(null, null);
 
         long tiempoInicial = System.currentTimeMillis() / 1000;
         initLastMovementsLogger(lastMovementsLogger, tiempoInicial);
@@ -532,7 +546,7 @@ public class GameHandler extends Thread {
 
             mapProducer.send(new ProducerRecord<String,String>("MAP", getGameStateAsJSONString(null)));
             mapProducer.flush();
-            saveGameState(null);
+            saveGameState(null, lastMovementsLogger);
         }
     }
 
@@ -619,7 +633,7 @@ public class GameHandler extends Thread {
 
                 if (jugadores.size() > 0) {
                     mapProducer.send(new ProducerRecord<String,String>("MAP", getGameStateAsJSONString(ganadores)));
-                    saveGameState(ganadores);
+                    saveGameState(ganadores, null);
                 }
 
                 npcAuthHandler.stopThread();

@@ -3,7 +3,7 @@ import { Request, Response } from "express";
 import { getDBClientAndGameState } from "./utils";
 
 async function getPlayerList(req: Request, res: Response) {
-    const { mongoClient, gameStateObj } = await getDBClientAndGameState();
+    const { mongoClient, gameStateObj, errorMessage} = await getDBClientAndGameState();
 
     try {
         if (gameStateObj != null) {
@@ -16,10 +16,16 @@ async function getPlayerList(req: Request, res: Response) {
                 delete players[key].token;
             }
 
-            res.status(200).json({success: true, players: players});
+            let resObj: any = {success: true, players: players};
+
+            if (gameStateObj['movementsLogger'] !== undefined) {
+                resObj["movementsLogger"] = gameStateObj['movementsLogger'];
+            }
+
+            res.status(200).json(resObj);
         }
         else {
-            res.sendStatus(500);
+            res.status(500).json({errorMessage: errorMessage});
         }
     }
     finally {
@@ -30,7 +36,7 @@ async function getPlayerList(req: Request, res: Response) {
 }
 
 async function getSinglePlayer(req: Request, res: Response) {
-    const { mongoClient, gameStateObj } = await getDBClientAndGameState();
+    const { mongoClient, gameStateObj, errorMessage } = await getDBClientAndGameState();
 
     try {
         if (gameStateObj != null) {
@@ -44,7 +50,7 @@ async function getSinglePlayer(req: Request, res: Response) {
             }
         }
         else {
-            res.sendStatus(500);
+            res.status(500).json({errorMessage: errorMessage});
         }
     }
     finally {
