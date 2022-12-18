@@ -132,6 +132,12 @@ class Player:
 
     def start_read(self):
         try:
+            # Inicializar ventana Pygame
+            pygame.init()
+            self.screen = pygame.display.set_mode((600, 680))
+            pygame.display.set_caption("Against All")
+
+
             message_count = 0
             last_time=time.time()+9999
             while True:
@@ -174,6 +180,11 @@ class Player:
                             npcs[n["token"]] = n["nivel"]
                         os.system("cls||clear")
                         #print('Message', message_count, ':')
+                        
+                        # Dibujar un tablero de 20x20 casillas con los jugadores y los npcs
+                        self.draw_board(map, npcs, cities, message['ciudades'], jugador)
+
+                        # Dibujar mapa en la consola
                         string_mapa=""
                         string_mapa+=("Nivel: "+str(jugador["nivel"])+"\n")
                         string_mapa+=(cities[0]+': '+str(message['ciudades'][cities[0]])+ '             '+cities[1]+': '+ str(message['ciudades'][cities[1]])+"\n")
@@ -393,24 +404,199 @@ class Player:
             print(bcolors.OKCYAN + "Pulsa enter para continuar." + bcolors.ENDC)
             input()
 
-    def draw_board(self):
+    def draw_board(self, mapa, npcs, ciudades, temp, jugador):
+        
+
         # Dividiendo el tablero en 4 cuadrantes de 10x10 casillas con distintos colores
+        shift = 2
         for i in range(10):
-            for j in range(10):
+            for j in range(0+shift,10+shift):
+                # Dibujar el cuadrante superior izquierdo
+                pygame.draw.rect(self.screen, (255, 255, 255), (i*30, j*30, 30, 30), 0)
+                # Dibujar el borde de la casilla
+                pygame.draw.rect(self.screen, (0, 0, 0), (i*30, j*30, 30, 30), 1)
+                # Dibujar si hay una pieza en la casilla
+                if len(mapa[j-shift][i]) > 1:
+                    if mapa[j-shift][i][0] == 1:
+                        myfont = pygame.font.SysFont('Comic Sans MS', 15)
+                        textsurface = myfont.render(str(npcs[mapa[j-shift][i][1]]), False, (255, 0, 0))
+                        self.screen.blit(textsurface, (i*30+10, j*30+10))
+                    else:
+                        pygame.draw.circle(self.screen, (255, 0, 0), (i*30+15, j*30+15), 10)
+                        pygame.draw.line(self.screen, (255, 0, 0), (i*30+15, j*30+3), (i*30+15, j*30+27), 2)
+                        pygame.draw.line(self.screen, (255, 0, 0), (i*30+3, j*30+15), (i*30+27, j*30+15), 2)
+                        pygame.draw.line(self.screen, (255, 0, 0), (i*30+3, j*30+3), (i*30+27, j*30+27), 2)
+                        pygame.draw.line(self.screen, (255, 0, 0), (i*30+27, j*30+3), (i*30+3, j*30+27), 2)
+                else:
+                    # 0 = vacío, 1 = alimento, 2 = mina
+                    if mapa[j-shift][i][0] == 1:
+                        pygame.draw.circle(self.screen, (0, 255, 0), (i*30+15, j*30+15), 10)
+                    elif mapa[j-shift][i][0] == 2:
+                        # Dibujar una mina como un circulo rojo con pinchos
+                        pygame.draw.circle(self.screen, (255, 0, 0), (i*30+15, j*30+15), 10)
+                        pygame.draw.line(self.screen, (255, 0, 0), (i*30+15, j*30+3), (i*30+15, j*30+27), 2)
+                        pygame.draw.line(self.screen, (255, 0, 0), (i*30+3, j*30+15), (i*30+27, j*30+15), 2)
+                        pygame.draw.line(self.screen, (255, 0, 0), (i*30+3, j*30+3), (i*30+27, j*30+27), 2)
+                        pygame.draw.line(self.screen, (255, 0, 0), (i*30+27, j*30+3), (i*30+3, j*30+27), 2)
+                    # Cualquier otro valor indica que hay un jugador en la casilla
+                    # Si soy yo, dibujo un triangulo azul, si no, dibujo una X roja
+                    elif mapa[j-shift][i][0] != 0:
+                        if mapa[j-shift][i][0] == self.token:
+                            # Triangulo azul
+                            pygame.draw.polygon(self.screen, (0, 255, 255), ((i*30+3, j*30+27), (i*30+27, j*30+27), (i*30+15, j*30+3)))
+                        # Si es un npc dibujo su nivel en rojo
+                        elif mapa[j-shift][i][0] in npcs:
+                            myfont = pygame.font.SysFont('Comic Sans MS', 15)
+                            textsurface = myfont.render(str(npcs[mapa[j-shift][i][0]]), False, (255, 0, 0))
+                            self.screen.blit(textsurface, (i*30+10, j*30+10))
+                        else:
+                            pygame.draw.line(self.screen, (192, 0, 0), (i*30+3, j*30+3), (i*30+27, j*30+27), 4)
+                            pygame.draw.line(self.screen, (192, 0, 0), (i*30+27, j*30+3), (i*30+3, j*30+27), 4)
+                
+        for i in range(10, 20):
+            for j in range(10+shift, 20+shift):
                 pygame.draw.rect(self.screen, (255, 255, 255), (i*30, j*30, 30, 30), 0)
                 pygame.draw.rect(self.screen, (0, 0, 0), (i*30, j*30, 30, 30), 1)
+                # Dibujar si hay una pieza en la casilla
+                if len(mapa[j-shift][i]) > 1:
+                    if mapa[j-shift][i][0] == 1:
+                        myfont = pygame.font.SysFont('Comic Sans MS', 15)
+                        textsurface = myfont.render(str(npcs[mapa[j-shift][i][1]]), False, (255, 0, 0))
+                        self.screen.blit(textsurface, (i*30+10, j*30+10))
+                    else:
+                        pygame.draw.circle(self.screen, (255, 0, 0), (i*30+15, j*30+15), 10)
+                        pygame.draw.line(self.screen, (255, 0, 0), (i*30+15, j*30+3), (i*30+15, j*30+27), 2)
+                        pygame.draw.line(self.screen, (255, 0, 0), (i*30+3, j*30+15), (i*30+27, j*30+15), 2)
+                        pygame.draw.line(self.screen, (255, 0, 0), (i*30+3, j*30+3), (i*30+27, j*30+27), 2)
+                        pygame.draw.line(self.screen, (255, 0, 0), (i*30+27, j*30+3), (i*30+3, j*30+27), 2)
+                else:
+                    # 0 = vacío, 1 = alimento, 2 = mina
+                    if mapa[j-shift][i][0] == 1:
+                        pygame.draw.circle(self.screen, (0, 255, 0), (i*30+15, j*30+15), 10)
+                    elif mapa[j-shift][i][0] == 2:
+                        # Dibujar una mina como un circulo rojo con pinchos
+                        pygame.draw.circle(self.screen, (255, 0, 0), (i*30+15, j*30+15), 10)
+                        pygame.draw.line(self.screen, (255, 0, 0), (i*30+15, j*30+3), (i*30+15, j*30+27), 2)
+                        pygame.draw.line(self.screen, (255, 0, 0), (i*30+3, j*30+15), (i*30+27, j*30+15), 2)
+                        pygame.draw.line(self.screen, (255, 0, 0), (i*30+3, j*30+3), (i*30+27, j*30+27), 2)
+                        pygame.draw.line(self.screen, (255, 0, 0), (i*30+27, j*30+3), (i*30+3, j*30+27), 2)
+                    # Cualquier otro valor indica que hay un jugador en la casilla
+                    # Si soy yo, dibujo un triangulo azul, si no, dibujo una X roja
+                    elif mapa[j-shift][i][0] != 0:
+                        if mapa[j-shift][i][0] == self.token:
+                            # Triangulo azul
+                            pygame.draw.polygon(self.screen, (0, 255, 255), ((i*30+3, j*30+27), (i*30+27, j*30+27), (i*30+15, j*30+3)))
+                        # Si es un npc dibujo su nivel en rojo
+                        elif mapa[j-shift][i][0] in npcs:
+                            myfont = pygame.font.SysFont('Comic Sans MS', 15)
+                            textsurface = myfont.render(str(npcs[mapa[j-shift][i][0]]), False, (255, 0, 0))
+                            self.screen.blit(textsurface, (i*30+10, j*30+10))
+                        else:
+                            pygame.draw.line(self.screen, (192, 0, 0), (i*30+3, j*30+3), (i*30+27, j*30+27), 4)
+                            pygame.draw.line(self.screen, (192, 0, 0), (i*30+27, j*30+3), (i*30+3, j*30+27), 4)
         for i in range(10, 20):
-            for j in range(10, 20):
-                pygame.draw.rect(self.screen, (255, 255, 255), (i*30, j*30, 30, 30), 0)
-                pygame.draw.rect(self.screen, (0, 0, 0), (i*30, j*30, 30, 30), 1)
-        for i in range(10, 20):
-            for j in range(10):
+            for j in range(0+shift,10+shift):
                 pygame.draw.rect(self.screen, (0, 0, 0), (i*30, j*30, 30, 30), 0)
                 pygame.draw.rect(self.screen, (255, 255, 255), (i*30, j*30, 30, 30), 1)
+                # Dibujar si hay una pieza en la casilla
+                if len(mapa[j-shift][i]) > 1:
+                    if mapa[j-shift][i][0] == 1:
+                        myfont = pygame.font.SysFont('Comic Sans MS', 15)
+                        textsurface = myfont.render(str(npcs[mapa[j-shift][i][1]]), False, (255, 0, 0))
+                        self.screen.blit(textsurface, (i*30+10, j*30+10))
+                    else:
+                        pygame.draw.circle(self.screen, (255, 0, 0), (i*30+15, j*30+15), 10)
+                        pygame.draw.line(self.screen, (255, 0, 0), (i*30+15, j*30+3), (i*30+15, j*30+27), 2)
+                        pygame.draw.line(self.screen, (255, 0, 0), (i*30+3, j*30+15), (i*30+27, j*30+15), 2)
+                        pygame.draw.line(self.screen, (255, 0, 0), (i*30+3, j*30+3), (i*30+27, j*30+27), 2)
+                        pygame.draw.line(self.screen, (255, 0, 0), (i*30+27, j*30+3), (i*30+3, j*30+27), 2)
+                else:
+                    # 0 = vacío, 1 = alimento, 2 = mina
+                    if mapa[j-shift][i][0] == 1:
+                        pygame.draw.circle(self.screen, (0, 255, 0), (i*30+15, j*30+15), 10)
+                    elif mapa[j-shift][i][0] == 2:
+                        # Dibujar una mina como un circulo rojo con pinchos
+                        pygame.draw.circle(self.screen, (255, 0, 0), (i*30+15, j*30+15), 10)
+                        pygame.draw.line(self.screen, (255, 0, 0), (i*30+15, j*30+3), (i*30+15, j*30+27), 2)
+                        pygame.draw.line(self.screen, (255, 0, 0), (i*30+3, j*30+15), (i*30+27, j*30+15), 2)
+                        pygame.draw.line(self.screen, (255, 0, 0), (i*30+3, j*30+3), (i*30+27, j*30+27), 2)
+                        pygame.draw.line(self.screen, (255, 0, 0), (i*30+27, j*30+3), (i*30+3, j*30+27), 2)
+                    # Cualquier otro valor indica que hay un jugador en la casilla
+                    # Si soy yo, dibujo un triangulo azul, si no, dibujo una X roja
+                    elif mapa[j-shift][i][0] != 0:
+                        if mapa[j-shift][i][0] == self.token:
+                            # Triangulo azul
+                            pygame.draw.polygon(self.screen, (0, 255, 255), ((i*30+3, j*30+27), (i*30+27, j*30+27), (i*30+15, j*30+3)))
+                        # Si es un npc dibujo su nivel en rojo
+                        elif mapa[j-shift][i][0] in npcs:
+                            myfont = pygame.font.SysFont('Comic Sans MS', 15)
+                            textsurface = myfont.render(str(npcs[mapa[j-shift][i][0]]), False, (255, 0, 0))
+                            self.screen.blit(textsurface, (i*30+10, j*30+10))
+                        else:
+                            pygame.draw.line(self.screen, (192, 0, 0), (i*30+3, j*30+3), (i*30+27, j*30+27), 4)
+                            pygame.draw.line(self.screen, (192, 0, 0), (i*30+27, j*30+3), (i*30+3, j*30+27), 4)
         for i in range(10):
-            for j in range(10, 20):
+            for j in range(10+shift, 20+shift):
                 pygame.draw.rect(self.screen, (0, 0, 0), (i*30, j*30, 30, 30), 0)
                 pygame.draw.rect(self.screen, (255, 255, 255), (i*30, j*30, 30, 30), 1)
+                # Dibujar si hay una pieza en la casilla
+                if len(mapa[j-shift][i]) > 1:
+                    if mapa[j-shift][i][0] == 1:
+                        myfont = pygame.font.SysFont('Comic Sans MS', 15)
+                        textsurface = myfont.render(str(npcs[mapa[j-shift][i][1]]), False, (255, 0, 0))
+                        self.screen.blit(textsurface, (i*30+10, j*30+10))
+                    else:
+                        pygame.draw.circle(self.screen, (255, 0, 0), (i*30+15, j*30+15), 10)
+                        pygame.draw.line(self.screen, (255, 0, 0), (i*30+15, j*30+3), (i*30+15, j*30+27), 2)
+                        pygame.draw.line(self.screen, (255, 0, 0), (i*30+3, j*30+15), (i*30+27, j*30+15), 2)
+                        pygame.draw.line(self.screen, (255, 0, 0), (i*30+3, j*30+3), (i*30+27, j*30+27), 2)
+                        pygame.draw.line(self.screen, (255, 0, 0), (i*30+27, j*30+3), (i*30+3, j*30+27), 2)
+                else:
+                    # 0 = vacío, 1 = alimento, 2 = mina
+                    if mapa[j-shift][i][0] == 1:
+                        pygame.draw.circle(self.screen, (0, 255, 0), (i*30+15, j*30+15), 10)
+                    elif mapa[j-shift][i][0] == 2:
+                        # Dibujar una mina como un circulo rojo con pinchos
+                        pygame.draw.circle(self.screen, (255, 0, 0), (i*30+15, j*30+15), 10)
+                        pygame.draw.line(self.screen, (255, 0, 0), (i*30+15, j*30+3), (i*30+15, j*30+27), 2)
+                        pygame.draw.line(self.screen, (255, 0, 0), (i*30+3, j*30+15), (i*30+27, j*30+15), 2)
+                        pygame.draw.line(self.screen, (255, 0, 0), (i*30+3, j*30+3), (i*30+27, j*30+27), 2)
+                        pygame.draw.line(self.screen, (255, 0, 0), (i*30+27, j*30+3), (i*30+3, j*30+27), 2)
+                    # Cualquier otro valor indica que hay un jugador en la casilla
+                    # Si soy yo, dibujo un triangulo azul, si no, dibujo una X roja
+                    elif mapa[j-shift][i][0] != 0:
+                        if mapa[j-shift][i][0] == self.token:
+                            # Triangulo azul
+                            pygame.draw.polygon(self.screen, (0, 255, 255), ((i*30+3, j*30+27), (i*30+27, j*30+27), (i*30+15, j*30+3)))
+                        # Si es un npc dibujo su nivel en rojo
+                        elif mapa[j-shift][i][0] in npcs:
+                            myfont = pygame.font.SysFont('Comic Sans MS', 15)
+                            textsurface = myfont.render(str(npcs[mapa[j-shift][i][0]]), False, (255, 0, 0))
+                            self.screen.blit(textsurface, (i*30+10, j*30+10))
+                        else:
+                            pygame.draw.line(self.screen, (192, 0, 0), (i*30+3, j*30+3), (i*30+27, j*30+27), 4)
+                            pygame.draw.line(self.screen, (192, 0, 0), (i*30+27, j*30+3), (i*30+3, j*30+27), 4)
+        # Escribir el nombre del jugador y nivel
+        myfont = pygame.font.SysFont('Comic Sans MS', 15)
+        textsurface = myfont.render(self.alias + " - Nivel: " + str(jugador["nivel"]), False, (255, 255, 255))
+        self.screen.blit(textsurface,(0,0))
+        # Escribir la temperatura de las ciudades encima de cada una
+        # Ciudad del cuadrante superior izquierdo
+        myfont = pygame.font.SysFont('Comic Sans MS', 15)
+        textsurface = myfont.render(ciudades[0] + ": " + str(temp[ciudades[0]]), False, (255, 255, 255))
+        self.screen.blit(textsurface,(0,40))
+        # Ciudad del cuadrante superior derecho
+        myfont = pygame.font.SysFont('Comic Sans MS', 15)
+        textsurface = myfont.render(ciudades[1] + ": " + str(temp[ciudades[1]]), False, (255, 255, 255))
+        self.screen.blit(textsurface,(300,40))
+        # Ciudad del cuadrante inferior izquierdo
+        myfont = pygame.font.SysFont('Comic Sans MS', 15)
+        textsurface = myfont.render(ciudades[2] + ": " + str(temp[ciudades[2]]), False, (255, 255, 255))
+        self.screen.blit(textsurface,(0,shift*30+600))
+        # Ciudad del cuadrante inferior derecho
+        myfont = pygame.font.SysFont('Comic Sans MS', 15)
+        textsurface = myfont.render(ciudades[3] + ": " + str(temp[ciudades[3]]), False, (255, 255, 255))
+        self.screen.blit(textsurface,(300,shift*30+600))
         # Dibujar el tablero
         pygame.display.flip()
 
@@ -523,15 +709,6 @@ class Player:
 
         # Imprimir el mensaje de respuesta
         print(response.text)
-    
-    def jugar_pygame(self):
-        # Inicializar ventana Pygame
-        pygame.init()
-        self.screen = pygame.display.set_mode((600, 600))
-        pygame.display.set_caption("Against All")
-        # Dibujar un tablero de 20x20 casillas
-        self.draw_board() 
-        input()
 
 if (len(sys.argv)==8):
     player=Player(sys.argv[1], int(sys.argv[2]), sys.argv[3], int(sys.argv[4]), sys.argv[5], int(sys.argv[6]), int(sys.argv[7]))
