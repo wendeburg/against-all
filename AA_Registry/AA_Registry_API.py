@@ -2,7 +2,6 @@ import pymongo
 import sys
 from flask import Flask, request, jsonify
 import logging
-import hashlib
 import ssl
 
 class bcolors:

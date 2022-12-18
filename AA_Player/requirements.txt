@@ -1,2 +1,5 @@
 kafka-python
 uuid
+msvcrt
+pygame
+requests
