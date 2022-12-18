@@ -13,7 +13,7 @@
     async function getGameID() {
         const res = await fetch(baseUrl);
 
-        return res.json();   
+        return res.json();
     }
 
     async function getGameState() {
@@ -172,7 +172,7 @@
         }
     }
 
-    function updateMap(map, players) {
+    function updateMap(map) {
         const cells = body.children[0].children[1].children;
 
         for (let i = 0; i < 20; i++) {
@@ -224,7 +224,7 @@
         }
     }
 
-    function updatePlayersAndNPCs(characters, infoContainer, updatingPlayers) {
+    function updatePlayersAndNPCs(characters, infoContainer, updatingPlayers, map, movementsLogger) {
         removeAllChildNodes(infoContainer);
 
         if (Object.keys(characters).length === 0) {
@@ -242,6 +242,19 @@
             let playerName = document.createElement("p");
             playerName.classList.add("player-info-name");
             playerName.textContent = key;
+
+            if (updatingPlayers && movementsLogger) {
+                const elementInCell = map[value["posicion"][0]][value["posicion"][1]][0];
+
+                for (let [token, time] of Object.entries(movementsLogger)) {
+                    if (elementInCell == token) {
+                        if (Date.now()/1000 - time > 6) {
+                            playerName.textContent += " - Lost connection?";
+                            playerName.classList.add("error-message");
+                        }
+                    }
+                }
+            }
 
             let playerLevel = document.createElement("p");
             playerLevel.classList.add("player-info-level");
@@ -264,7 +277,9 @@
         restartBtn.innerText = "Restart";
         restartBtn.setAttribute("id", "restart-btn");
 
-        subtitleContainer.appendChild(restartBtn);
+        if (!subtitleContainer.querySelector("#restart-btn")) {
+            subtitleContainer.appendChild(restartBtn);
+        }
 
         const btnElement = subtitleContainer.querySelector("#restart-btn");
         btnElement.addEventListener("click", function() {
@@ -296,6 +311,27 @@
         }
     }
 
+    function showErrorMessage(msg) {
+        if (!subtitleContainer.querySelector(".error-message")) {
+            let errorMsg = document.createElement("p");
+
+            if (msg) {
+                errorMsg.textContent = "An error has ocurred while retrieving match data. " + msg + " Retrying...";
+            }
+            else {
+                errorMsg.textContent = "An error has ocurred while retrieving match data. Retrying...";
+            }
+
+            errorMsg.classList.add("error-message");
+            errorMsg.setAttribute("id", "subtitle-error-message");
+
+            subtitleContainer.appendChild(errorMsg);
+        }
+        else {
+            subtitleContainer.querySelector(".error-message").textContent = "An error has ocurred while retrieving match data. " + msg + " Retrying...";
+        }
+    }
+
     async function gameSpactateHandler(initialRequest) {
         removeAllChildNodes(body);
         body.className = "";
@@ -323,8 +359,8 @@
                 const mapRequest = await getMap();
         
                 updateMap(mapRequest.map);
-        
-                updatePlayersAndNPCs(playerRequest.players, body.children[1].children[1], true);
+
+                updatePlayersAndNPCs(playerRequest.players, body.children[1].children[1], true, mapRequest.map, playerRequest.movementsLogger);
         
                 updatePlayersAndNPCs(npcsRequest.npcs, body.children[2].children[1], false);
         
@@ -337,14 +373,7 @@
                 }
             }
             catch (err) {
-                if (!subtitleContainer.querySelector(".error-message")) {
-                    let errorMsg = document.createElement("p");
-                    errorMsg.textContent = "An error has ocurred while retrieving match data. Retrying...";
-                    errorMsg.classList.add("error-message");
-                    errorMsg.setAttribute("id", "subtitle-error-message");
-    
-                    subtitleContainer.appendChild(errorMsg);
-                }
+                showErrorMessage(null);
             }
     
             if (gameStateRequest["gamefinished"] === true) {
