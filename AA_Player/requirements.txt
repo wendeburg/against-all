@@ -3,3 +3,5 @@ uuid
 msvcrt
 pygame
 requests
+hashlib
+ssl
