@@ -10,19 +10,33 @@ import random
 
 
 class NPC:
-    def __init__(self, bootstrap_ip, bootstrap_port, nivel):
+    def __init__(self, bootstrap_ip, bootstrap_port, nivel, npc_number):
+        self.npc_number = npc_number
         self.dead=False
         self.bootstrap_addr = [bootstrap_ip + ":" + str(bootstrap_port)]
         self._consumer = kafka.KafkaConsumer("MAP",
                                         auto_offset_reset='latest', enable_auto_commit=True,
                                        bootstrap_servers=self.bootstrap_addr,
                                        value_deserializer=lambda x: json.loads(x.decode('utf-8')),
-                                       group_id=str(uuid.uuid4()))
+                                       group_id=str(uuid.uuid4()),
+                                       security_protocol="SSL",
+                                       ssl_cafile="./secrets/aa-npc.CARoot.pem",
+                                       ssl_certfile="./secrets/aa-npc."+str(self.npc_number)+".certificate.pem",
+                                        ssl_keyfile="./secrets/aa-npc."+str(self.npc_number)+".key.pem",
+                                       ssl_check_hostname=False,
+                                       ssl_password=open('./secrets/aa-npc_creds', 'r').read().replace('\n', ''))
         self.producer = kafka.KafkaProducer(bootstrap_servers=self.bootstrap_addr,
-                                      value_serializer=lambda x: json.dumps(x).encode('utf-8'))
+                                      value_serializer=lambda x: json.dumps(x).encode('utf-8'),
+                                      security_protocol="SSL",
+                                      ssl_cafile="./secrets/aa-npc.CARoot.pem",
+                                      ssl_certfile="./secrets/aa-npc."+str(self.npc_number)+".certificate.pem",
+                                        ssl_keyfile="./secrets/aa-npc."+str(self.npc_number)+".key.pem",
+                                      ssl_check_hostname=False,
+                                      ssl_password=open('./secrets/aa-npc_creds', 'r').read().replace('\n', ''))
         self.nivel=nivel
         self.partida=False
         self._valid_moves = {"W":"N", "A":"W", "S":"S", "D":"E", "w":"N", "a":"W", "s":"S", "d":"E", "Q":"NW", "E":"NE", "Z":"SW", "C":"SE", "q":"NW", "e":"NE", "z":"SW", "c":"SE"}
+        
     
     def update_every_second(self):
         while self.dead==False and self.partida==False:
@@ -50,25 +64,27 @@ class NPC:
     def join_game(self):
         self.id = str(uuid.uuid4())
         # Conectarse a Kafka por SSL
+        
         consumer = kafka.KafkaConsumer("TOKENOFFERS",
                                         auto_offset_reset='earliest', enable_auto_commit=True,
                                        bootstrap_servers=self.bootstrap_addr,
                                        value_deserializer=lambda x: json.loads(x.decode('utf-8')),
                                        group_id=self.id,
                                        security_protocol="SSL",
-                                       ssl_cafile="./secrets/ca-cert",
-                                       ssl_certfile="./secrets/service.cert",
-                                       ssl_keyfile="./secrets/service.key",
+                                       ssl_cafile="./secrets/aa-npc.CARoot.pem",
+                                       ssl_certfile="./secrets/aa-npc."+str(self.npc_number)+".certificate.pem",
+                                        ssl_keyfile="./secrets/aa-npc."+str(self.npc_number)+".key.pem",
                                        ssl_check_hostname=False,
-                                       ssl_password="kafka")
+                                       ssl_password=open('./secrets/aa-npc_creds', 'r').read().replace('\n', ''))
+        
         producer = kafka.KafkaProducer(bootstrap_servers=self.bootstrap_addr,
                                       value_serializer=lambda x: json.dumps(x).encode('utf-8'),
                                       security_protocol="SSL",
-                                      ssl_cafile="./secrets/ca-cert",
-                                      ssl_certfile="./secrets/service.cert",
-                                      ssl_keyfile="./secrets/service.key",
+                                      ssl_cafile="./secrets/aa-npc.CARoot.pem",
+                                      ssl_certfile="./secrets/aa-npc."+str(self.npc_number)+".certificate.pem",
+                                        ssl_keyfile="./secrets/aa-npc."+str(self.npc_number)+".key.pem",
                                       ssl_check_hostname=False,
-                                      ssl_password="kafka")
+                                      ssl_password=open('./secrets/aa-npc_creds', 'r').read().replace('\n', ''))
 
         
         producer.send("NPCAUTHREQUEST", {"type":"request", "npcid":self.id})
@@ -91,23 +107,23 @@ class NPC:
         receive_kafka.join()
         print("Game end")
 
-if (len(sys.argv)==3):
+if (len(sys.argv)==4):
     os.system('cls||clear')
     print("Nivel del NPC:")
     try:
         nivel=int(input())
         if nivel<11 and nivel>0:
-            player=NPC(sys.argv[1], int(sys.argv[2]), nivel)
+            player=NPC(sys.argv[1], int(sys.argv[2]), nivel, int(sys.argv[3]))
         else:
             raise Exception("Nivel no válido")
     except Exception as exc:
         
         print("ERROR:",exc)
-        os._exit(os.EX_OK)
+        os._exit(0)
     
 
     player.join_game()
     time.sleep(2)
 else:
-    print("Oops!. Something went bad. I need following args: <Bootstrap_Server_IP> <Bootstrap_Server_Port>")
+    print("Oops!. Something went bad. I need following args: <Bootstrap_Server_IP> <Bootstrap_Server_Port> <NPC_Number>")
         

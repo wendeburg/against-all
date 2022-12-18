@@ -425,3 +425,7 @@ AA_Engine/.vscode/launch.json
 # Eliminar node_modules
 node_modules/
 package-lock.json
+AA_Engine/27777
+.gitignore
+AA_Engine/estado_ultima_partida.json
+AA_Engine/.vscode/launch.json
